@@ -1,9 +1,9 @@
-# syntax=docker/dockerfile:1-labs
+# syntax=harbor-yctest.huya.info/harbor_docker/dockerfile:1-labs
 
 # Build argument for custom certificates directory
 ARG CUSTOM_CERT_DIR="certs"
 
-FROM node:20-alpine3.22 AS node_base
+FROM harbor-yctest.huya.info/harbor_docker/node:20-alpine AS node_base
 
 FROM node_base AS node_deps
 WORKDIR /app
@@ -22,7 +22,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN NODE_ENV=production npm run build
 
-FROM python:3.11-slim AS py_deps
+FROM harbor-yctest.huya.info/harbor_docker/python:3.11-slim AS py_deps
 WORKDIR /app
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -30,7 +30,7 @@ COPY api/requirements.txt ./api/
 RUN pip install --no-cache -r api/requirements.txt
 
 # Use Python 3.11 as final image
-FROM python:3.11-slim
+FROM harbor-yctest.huya.info/harbor_docker/python:3.11-slim
 
 # Set working directory
 WORKDIR /app
