@@ -179,6 +179,15 @@ export default function Home() {
         owner = parts[parts.length - 2] || '';
       }
     }
+    else if (input.includes('huya.info') || input.includes('huya.com')) {
+      type = 'gitlab'; // 将类型设置为 gitlab
+      fullPath = extractUrlPath(input)?.replace(/\.git$/, '');
+      const parts = fullPath?.split('/') ?? [];
+      if (parts.length >= 2) {
+        repo = parts[parts.length - 1] || '';
+        owner = parts[parts.length - 2] || '';
+      }
+    }
     // Unsupported URL formats
     else {
       console.error('Unsupported URL format:', input);
