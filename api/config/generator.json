@@ -1,22 +1,8 @@
 {
-  "default_provider": "google",
+  "default_provider": "openai",
   "providers": {
     "openai": {
-      "default_model": "deepseek-v3-250324",
-      "supportsCustomModel": true,
-      "models": {
-        "claude-3-7-sonnet": {
-          "temperature": 0.7,
-          "top_p": 0.8
-        },
-        "deepseek-v3-250324": {
-          "temperature": 0.7,
-          "top_p": 0.8
-        }
-      }
-    },
-    "openrouter": {
-      "default_model": "deepseek-v3-250324",
+      "default_model": "claude-3-7-sonnet",
       "supportsCustomModel": true,
       "models": {
         "claude-3-7-sonnet": {
