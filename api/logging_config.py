@@ -12,7 +12,8 @@ def setup_logging(format: str = None):
     # Determine log directory and default file path
     base_dir = Path(__file__).parent
     log_dir = base_dir / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
+    if not log_dir.is_dir():
+        log_dir.mkdir(parents=True, exist_ok=True)
     default_log_file = log_dir / "application.log"
 
     # Get log level and file path from environment

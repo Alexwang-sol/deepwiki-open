@@ -23,6 +23,6 @@ image_build:
   script:
     - echo "OPENAI_API_KEY=${PIOLT_TOKEN}" >> .env
     - echo "OPENAI_BASE_URL=https://copilot.huya.info/openai/api/v1" >> .env
-    - imgname=harbor_monorepo/deepseek
+    - imgname=harbor_monorepo/deepwiki
     - docker build -t ${harbortesthost}/${imgname}:${timetag} .
     - docker push ${harbortesthost}/${imgname}:${timetag}

@@ -93,6 +93,7 @@ fi\n\
 python -m api.main --port ${PORT:-8001} &\n\
 PORT=3000 HOSTNAME=0.0.0.0 node server.js &\n\
 wait -n\n\
+ln -s /app/api/logs/ /data/app/ \n\
 exit $?' > /app/start.sh && chmod +x /app/start.sh
 
 # Set environment variables
