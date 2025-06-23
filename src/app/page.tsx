@@ -90,7 +90,7 @@ export default function Home() {
   const [excludedFiles, setExcludedFiles] = useState('');
   const [includedDirs, setIncludedDirs] = useState('');
   const [includedFiles, setIncludedFiles] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState<'github' | 'gitlab' | 'bitbucket'>('github');
+  const [selectedPlatform, setSelectedPlatform] = useState<'github' | 'gitlab' | 'bitbucket'>('gitlab');
   const [accessToken, setAccessToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -290,7 +290,7 @@ export default function Home() {
       params.append('token', accessToken);
     }
     // Always include the type parameter
-    params.append('type', (type == 'local' ? type : selectedPlatform) || 'github');
+    params.append('type', (type == 'local' ? type : selectedPlatform) || parsedRepo.type);
     // Add local path if it exists
     if (localPath) {
       params.append('local_path', encodeURIComponent(localPath));
