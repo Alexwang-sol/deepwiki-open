@@ -77,6 +77,30 @@ export default function Home() {
 
   const [repositoryInput, setRepositoryInput] = useState('https://git.huya.info/huya_infra/deepwiki-open');
 
+  useEffect(() => {
+    const fetchHuyaToken = async () => {
+      if (repositoryInput.includes('huya.info') || repositoryInput.includes('huya.com')) {
+        try {
+          const response = await fetch('/api/huya-token');
+          if (response.ok) {
+            const data = await response.json();
+            setAccessToken(data.accessToken);
+          } else {
+            console.error('Failed to fetch huya token:', response.statusText);
+            setAccessToken(''); // Clear token on error
+          }
+        } catch (error) {
+          console.error('Error fetching huya token:', error);
+          setAccessToken(''); // Clear token on error
+        }
+      } else {
+        setAccessToken(''); // Clear token if not huya.info
+      }
+    };
+
+    fetchHuyaToken();
+  }, [repositoryInput]);
+
   // Provider-based model selection state
   const [provider, setProvider] = useState<string>('');
   const [model, setModel] = useState<string>('');

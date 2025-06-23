@@ -1204,7 +1204,7 @@ IMPORTANT:
       else if (effectiveRepoInfo.type === 'gitlab') {
         // GitLab API approach
         const projectPath = extractUrlPath(effectiveRepoInfo.repoUrl ?? '') ?? `${owner}/${repo}`;
-        const projectDomain = extractUrlDomain(effectiveRepoInfo.repoUrl ?? "https://gitlab.com");
+        const projectDomain = extractUrlDomain(effectiveRepoInfo.repoUrl ?? "https://git.huya.com");
         const encodedProjectPath = encodeURIComponent(projectPath);
 
         const headers = createGitlabHeaders(currentToken);

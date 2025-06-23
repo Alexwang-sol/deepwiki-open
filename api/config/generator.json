@@ -2,14 +2,14 @@
   "default_provider": "openai",
   "providers": {
     "openai": {
-      "default_model": "claude-3-7-sonnet",
+      "default_model": "deepseek/deepseek-v3-250324",
       "supportsCustomModel": true,
       "models": {
-        "claude-3-7-sonnet": {
+        "deepseek/deepseek-v3": {
           "temperature": 0.7,
           "top_p": 0.8
         },
-        "deepseek-v3-250324": {
+        "deepseek/deepseek-v3-250324": {
           "temperature": 0.7,
           "top_p": 0.8
         }
@@ -17,22 +17,14 @@
     },
     "azure": {
       "client_class": "AzureAIClient",
-      "default_model": "gpt-4o",
+      "default_model": "azure/o4-mini",
       "supportsCustomModel": true,
       "models": {
-        "gpt-4o": {
+        "azure/o4-mini": {
           "temperature": 0.7,
           "top_p": 0.8
         },
-        "gpt-4": {
-          "temperature": 0.7,
-          "top_p": 0.8
-        },
-        "gpt-35-turbo": {
-          "temperature": 0.7,
-          "top_p": 0.8
-        },
-        "gpt-4-turbo": {
+        "azure/gpt-4.1": {
           "temperature": 0.7,
           "top_p": 0.8
         }
