@@ -111,9 +111,8 @@ class WikiStructureRequest(BaseModel):
     Model for requesting a wiki structure.
     The repo url is like https://deepwiki.test.huya.info/${owner}}/${repo}
     """
-    owner: str
-    repo: str
-    repo_type: str
+    repoName: str
+    repoType: Optional[str] = "gitlab"
     language: Optional[str] = "zh"
 
 class WikiContentRequest(BaseModel):
@@ -122,7 +121,7 @@ class WikiContentRequest(BaseModel):
     The repo url is like https://deepwiki.test.huya.info/${repoName}
     """
     repoName: str
-    repo_type: str
+    repoType: Optional[str] = "gitlab"
     language: Optional[str] = "zh"
     title: Optional[str] = Field(default="", description="Title, if you know it.")
     format: Literal["markdown", "json"] = Field(default="markdown", description="Export format (markdown or json)")
@@ -558,14 +557,20 @@ async def read_wiki_structure(request_data: WikiStructureRequest) -> Optional[Wi
     if not supported_langs.__contains__(request_data.language):
         request_data.language = configs["lang_config"]["default"]
 
-    logger.info(f"Attempting to retrieve wiki cache for {request_data.owner}/{request_data.repo} ({request_data.repo_type}), lang: {request_data.language}")
-    cached_data = await read_wiki_cache(request_data.owner, request_data.repo, request_data.repo_type, request_data.language)
+    # Split repoName into owner and repo
+    repo_parts = request_data.repoName.split('/')
+    if len(repo_parts) != 2:
+        raise HTTPException(status_code=400, detail="repoName must be in 'owner/repo' format")
+    owner, repo = repo_parts[0], repo_parts[1]
+
+    logger.info(f"Attempting to retrieve wiki cache for {owner}/{repo} ({request_data.repoType}), lang: {request_data.language}")
+    cached_data = await read_wiki_cache(owner, repo, request_data.repoType, request_data.language)
     if cached_data:
         return cached_data.wiki_structure
     else:
         # Return 200 with null body if not found, as frontend expects this behavior
         # Or, raise HTTPException(status_code=404, detail="Wiki cache not found") if preferred
-        logger.info(f"Wiki cache not found for {request_data.owner}/{request_data.repo} ({request_data.repo_type}), lang: {request_data.language}")
+        logger.info(f"Wiki cache not found for {owner}/{repo} ({request_data.repoType}), lang: {request_data.language}")
         return None
 
 @app.post("/api/read_wiki_contents")
@@ -584,12 +589,12 @@ async def read_wiki_contents(request_data: WikiContentRequest) -> str:
         raise HTTPException(status_code=400, detail="repoName must be in 'owner/repo' format")
     owner, repo = repo_parts[0], repo_parts[1]
 
-    logger.info(f"Attempting to read wiki cache for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
-    cached_data = await read_wiki_cache(owner, repo, request_data.repo_type, request_data.language)
+    logger.info(f"Attempting to read wiki cache for {owner}/{repo} ({request_data.repoType}), lang: {request_data.language}")
+    cached_data = await read_wiki_cache(owner, repo, request_data.repoType, request_data.language)
 
     logger.info(f"cache data {cached_data}")
     if not cached_data:
-        logger.info(f"Wiki cache not found for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
+        logger.info(f"Wiki cache not found for {owner}/{repo} ({request_data.repoType}), lang: {request_data.language}")
         raise HTTPException(status_code=404, detail="Wiki cache not found")
 
     # Convert generated_pages dict to a list of WikiPage objects
