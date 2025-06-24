@@ -105,6 +105,17 @@ class WikiExportRequest(BaseModel):
     pages: List[WikiPage] = Field(..., description="List of wiki pages to export")
     format: Literal["markdown", "json"] = Field(..., description="Export format (markdown or json)")
 
+
+class WikiStructureRequest(BaseModel):
+    """
+    Model for requesting a wiki export.
+    The repo url is like https://deepwiki.test.huya.info/${owner}}/${repo}
+    """
+    owner: str
+    repo: str
+    repo_type: str
+    language: Optional[str] = "zh"
+
 # --- Model Configuration Models ---
 class Model(BaseModel):
     """
@@ -131,6 +142,7 @@ class ModelConfig(BaseModel):
 
 class AuthorizationConfig(BaseModel):
     code: str = Field(..., description="Authorization code")
+
 
 from api.config import configs, WIKI_AUTH_MODE, WIKI_AUTH_CODE
 
@@ -168,7 +180,7 @@ async def get_model_config():
 
         # Create providers from the config file
         providers = []
-        default_provider = configs.get("default_provider", "google")
+        default_provider = configs.get("default_provider", "openai")
 
         # Add provider configuration based on config.py
         for provider_id, provider_config in configs["providers"].items():
@@ -201,15 +213,15 @@ async def get_model_config():
         return ModelConfig(
             providers=[
                 Provider(
-                    id="google",
-                    name="Google",
+                    id="openai",
+                    name="OpenAI",
                     supportsCustomModel=True,
                     models=[
-                        Model(id="gemini-2.0-flash", name="Gemini 2.0 Flash")
+                        Model(id="deepseek/deepseek-v3-250324", name="deepseek/deepseek-v3-250324")
                     ]
                 )
             ],
-            defaultProvider="google"
+            defaultProvider="openai"
         )
 
 @app.post("/export/wiki")
@@ -524,6 +536,26 @@ async def delete_wiki_cache(
     else:
         logger.warning(f"Wiki cache not found, cannot delete: {cache_path}")
         raise HTTPException(status_code=404, detail="Wiki cache not found")
+
+@app.post("/api/read_wiki_structure")
+async def store_wiki_cache(request_data: WikiStructureRequest) -> Optional[WikiStructureModel]:
+    """
+    Get a list of documentation topics for a Huya Gitlab repository.
+    """
+    # Language validation
+    supported_langs = configs["lang_config"]["supported_languages"]
+    if not supported_langs.__contains__(request_data.language):
+        language = configs["lang_config"]["default"]
+
+    logger.info(f"Attempting to retrieve wiki cache for {request_data.owner}/{request_data.repo} ({request_data.repo_type}), lang: {request_data.language}")
+    cached_data = await read_wiki_cache(request_data.owner, request_data.repo, request_data.repo_type, request_data.language)
+    if cached_data:
+        return cached_data.wiki_structure
+    else:
+        # Return 200 with null body if not found, as frontend expects this behavior
+        # Or, raise HTTPException(status_code=404, detail="Wiki cache not found") if preferred
+        logger.info(f"Wiki cache not found for {request_data.owner}/{request_data.repo} ({request_data.repo_type}), lang: {request_data.language}")
+        return None
 
 @app.get("/health")
 async def health_check():
