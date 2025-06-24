@@ -124,8 +124,8 @@ class WikiContentRequest(BaseModel):
     repoName: str
     repo_type: str
     language: Optional[str] = "zh"
-    title: Optional[str] = Field(..., default="", description="Title, if you knows")
-    format: Literal["markdown", "json"] = Field(..., default="markdown", description="Export format (markdown or json)")
+    title: Optional[str] = Field(default="", description="Title, if you know it.")
+    format: Literal["markdown", "json"] = Field(default="markdown", description="Export format (markdown or json)")
 
 # --- Model Configuration Models ---
 class Model(BaseModel):
@@ -584,15 +584,17 @@ async def read_wiki_contents(request_data: WikiContentRequest) -> str:
         raise HTTPException(status_code=400, detail="repoName must be in 'owner/repo' format")
     owner, repo = repo_parts[0], repo_parts[1]
 
-    logger.info(f"Attempting to retrieve wiki cache for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
+    logger.info(f"Attempting to read wiki cache for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
     cached_data = await read_wiki_cache(owner, repo, request_data.repo_type, request_data.language)
 
+    logger.info(f"cache data {cached_data}")
     if not cached_data:
         logger.info(f"Wiki cache not found for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
         raise HTTPException(status_code=404, detail="Wiki cache not found")
 
     # Convert generated_pages dict to a list of WikiPage objects
     all_generated_pages = list(cached_data.generated_pages.values())
+    logger.info(f"generate pages {all_generated_pages}")
 
     pages_to_export = []
     if request_data.title:
