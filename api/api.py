@@ -108,13 +108,24 @@ class WikiExportRequest(BaseModel):
 
 class WikiStructureRequest(BaseModel):
     """
-    Model for requesting a wiki export.
+    Model for requesting a wiki structure.
     The repo url is like https://deepwiki.test.huya.info/${owner}}/${repo}
     """
     owner: str
     repo: str
     repo_type: str
     language: Optional[str] = "zh"
+
+class WikiContentRequest(BaseModel):
+    """
+    Model for requesting a wiki summary.
+    The repo url is like https://deepwiki.test.huya.info/${repoName}
+    """
+    repoName: str
+    repo_type: str
+    language: Optional[str] = "zh"
+    title: Optional[str] = Field(..., default="", description="Title, if you knows")
+    format: Literal["markdown", "json"] = Field(..., default="markdown", description="Export format (markdown or json)")
 
 # --- Model Configuration Models ---
 class Model(BaseModel):
@@ -538,14 +549,14 @@ async def delete_wiki_cache(
         raise HTTPException(status_code=404, detail="Wiki cache not found")
 
 @app.post("/api/read_wiki_structure")
-async def store_wiki_cache(request_data: WikiStructureRequest) -> Optional[WikiStructureModel]:
+async def read_wiki_structure(request_data: WikiStructureRequest) -> Optional[WikiStructureModel]:
     """
     Get a list of documentation topics for a Huya Gitlab repository.
     """
     # Language validation
     supported_langs = configs["lang_config"]["supported_languages"]
     if not supported_langs.__contains__(request_data.language):
-        language = configs["lang_config"]["default"]
+        request_data.language = configs["lang_config"]["default"]
 
     logger.info(f"Attempting to retrieve wiki cache for {request_data.owner}/{request_data.repo} ({request_data.repo_type}), lang: {request_data.language}")
     cached_data = await read_wiki_cache(request_data.owner, request_data.repo, request_data.repo_type, request_data.language)
@@ -556,6 +567,58 @@ async def store_wiki_cache(request_data: WikiStructureRequest) -> Optional[WikiS
         # Or, raise HTTPException(status_code=404, detail="Wiki cache not found") if preferred
         logger.info(f"Wiki cache not found for {request_data.owner}/{request_data.repo} ({request_data.repo_type}), lang: {request_data.language}")
         return None
+
+@app.post("/api/read_wiki_contents")
+async def read_wiki_contents(request_data: WikiContentRequest) -> str:
+    """
+    Get the content of wiki pages for a repository, optionally filtered by title, and export it.
+    """
+    # Language validation
+    supported_langs = configs["lang_config"]["supported_languages"]
+    if not supported_langs.__contains__(request_data.language):
+        request_data.language = configs["lang_config"]["default"]
+
+    # Split repoName into owner and repo
+    repo_parts = request_data.repoName.split('/')
+    if len(repo_parts) != 2:
+        raise HTTPException(status_code=400, detail="repoName must be in 'owner/repo' format")
+    owner, repo = repo_parts[0], repo_parts[1]
+
+    logger.info(f"Attempting to retrieve wiki cache for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
+    cached_data = await read_wiki_cache(owner, repo, request_data.repo_type, request_data.language)
+
+    if not cached_data:
+        logger.info(f"Wiki cache not found for {owner}/{repo} ({request_data.repo_type}), lang: {request_data.language}")
+        raise HTTPException(status_code=404, detail="Wiki cache not found")
+
+    # Convert generated_pages dict to a list of WikiPage objects
+    all_generated_pages = list(cached_data.generated_pages.values())
+
+    pages_to_export = []
+    if request_data.title:
+        # Filter by title if provided
+        found_page = next((page for page in all_generated_pages if page.title == request_data.title), None)
+        if found_page:
+            pages_to_export.append(found_page)
+            logger.info(f"Found page with title '{request_data.title}'. Exporting only this page.")
+        else:
+            # If title not found, export all pages
+            pages_to_export = all_generated_pages
+            logger.warning(f"Page with title '{request_data.title}' not found. Exporting all pages.")
+    else:
+        # If no title provided, export all pages
+        pages_to_export = all_generated_pages
+        logger.info("No title provided. Exporting all pages.")
+
+    # Construct repo_url for export functions
+    repo_url = f"https://deepwiki.test.huya.info/{owner}/{repo}"
+
+    # Get current timestamp for the filename
+    if request_data.format == "markdown":
+        content = generate_markdown_export(repo_url, pages_to_export)
+    else:  # JSON format
+        content = generate_json_export(repo_url, pages_to_export)
+    return content
 
 @app.get("/health")
 async def health_check():
