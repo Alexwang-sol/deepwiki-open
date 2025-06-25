@@ -574,7 +574,7 @@ export default function Home() {
               </a>
               <a href="https://mcp.huya.info/mcp/deepwiki?tab=detail" target="_blank" rel="noopener noreferrer"
                  className="text-[var(--muted)] hover:text-[var(--accent-primary)] transition-colors">
-                <img src="./mcp.svg" />
+                <img src="https://athena-local-apihub-1253539814.cos.ap-guangzhou.myqcloud.com/mcp-platform-images/13e0ca17-d7fb-4c4c-bcd2-57f99a065495.svg" className="w-4 h-4"/>
               </a>
             </div>
             <ThemeToggle />
