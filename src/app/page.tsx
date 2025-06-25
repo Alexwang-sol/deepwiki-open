@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { FaGitlab, FaWikipediaW } from 'react-icons/fa';
 import Mermaid from '../components/Mermaid';
-import McpIcon from './mcp.svg';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -575,7 +574,7 @@ export default function Home() {
               </a>
               <a href="https://mcp.huya.info/mcp/deepwiki?tab=detail" target="_blank" rel="noopener noreferrer"
                  className="text-[var(--muted)] hover:text-[var(--accent-primary)] transition-colors">
-                <McpIcon className="text-xl" />
+                <img src="./mcp.svg" />
               </a>
             </div>
             <ThemeToggle />
