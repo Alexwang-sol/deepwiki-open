@@ -21,13 +21,7 @@ def setup_logging(format: str = None):
     log_file_path = Path(os.environ.get(
         "LOG_FILE_PATH", str(default_log_file)))
 
-    # ensure log_file_path is within the project's logs directory to prevent path traversal
-    log_dir_resolved = log_dir.resolve()
     resolved_path = log_file_path.resolve()
-    if not str(resolved_path).startswith(str(log_dir_resolved) + os.sep):
-        raise ValueError(
-            f"LOG_FILE_PATH '{log_file_path}' is outside the trusted log directory '{log_dir_resolved}'"
-        )
     # Ensure parent dirs exist for the log file
     resolved_path.parent.mkdir(parents=True, exist_ok=True)
     # Configure logging handlers and format
