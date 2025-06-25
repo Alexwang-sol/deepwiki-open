@@ -556,6 +556,8 @@ async def read_wiki_structure(request_data: WikiStructureRequest) -> Optional[Wi
     supported_langs = configs["lang_config"]["supported_languages"]
     if not supported_langs.__contains__(request_data.language):
         request_data.language = configs["lang_config"]["default"]
+    if not request_data.repoType:
+        request_data.repoType = "gitlab"
 
     # Split repoName into owner and repo
     repo_parts = request_data.repoName.split('/')
