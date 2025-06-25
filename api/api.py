@@ -417,7 +417,7 @@ os.makedirs(WIKI_CACHE_DIR, exist_ok=True)
 
 def get_wiki_cache_path(owner: str, repo: str, repo_type: str, language: str) -> str:
     """Generates the file path for a given wiki cache."""
-    filename = f"deepwiki_cache_{repo_type}_{owner}_{repo}_{language}.json"
+    filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}@{language}.json"
     return os.path.join(WIKI_CACHE_DIR, filename)
 
 async def read_wiki_cache(owner: str, repo: str, repo_type: str, language: str) -> Optional[WikiCacheData]:
@@ -584,7 +584,8 @@ async def read_wiki_contents(request_data: WikiContentRequest) -> str:
     supported_langs = configs["lang_config"]["supported_languages"]
     if not supported_langs.__contains__(request_data.language):
         request_data.language = configs["lang_config"]["default"]
-
+    if not request_data.repoType:
+        request_data.repoType = "gitlab"
     # Split repoName into owner and repo
     repo_parts = request_data.repoName.split('/')
     if len(repo_parts) != 2:
@@ -670,7 +671,7 @@ async def root():
 async def get_processed_projects():
     """
     Lists all processed projects found in the wiki cache directory.
-    Projects are identified by files named like: deepwiki_cache_{repo_type}_{owner}_{repo}_{language}.json
+    Projects are identified by files named like: deepwiki_cache_{repo_type}@{owner}@{repo}@{language}.json
     """
     project_entries: List[ProcessedProjectEntry] = []
     # WIKI_CACHE_DIR is already defined globally in the file
@@ -688,7 +689,7 @@ async def get_processed_projects():
                 file_path = os.path.join(WIKI_CACHE_DIR, filename)
                 try:
                     stats = await asyncio.to_thread(os.stat, file_path) # Use asyncio.to_thread for os.stat
-                    parts = filename.replace("deepwiki_cache_", "").replace(".json", "").split('_')
+                    parts = filename.replace("deepwiki_cache_", "").replace(".json", "").split('@')
 
                     # Expecting repo_type_owner_repo_language
                     # Example: deepwiki_cache_github_AsyncFuncAI_deepwiki-open_en.json
