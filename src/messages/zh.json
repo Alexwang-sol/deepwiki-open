@@ -8,7 +8,9 @@
     "submit": "提交",
     "cancel": "取消",
     "close": "关闭",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "showGuide": "显示指引",
+    "hideGuide": "隐藏指引"
   },
   "loading": {
     "initializing": "初始化Wiki生成...",

@@ -8,7 +8,9 @@
     "submit": "Submit",
     "cancel": "Cancel",
     "close": "Close",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "showGuide": "Show Guide",
+    "hideGuide": "Hide Guide"
   },
   "loading": {
     "initializing": "Initializing wiki generation...",
