@@ -105,6 +105,8 @@ const addTokensToRequestBody = (
   language: string = 'en',
   excludedDirs?: string,
   excludedFiles?: string,
+  includedDirs?: string,
+  includedFiles?: string
 ): void => {
   if (token !== '') {
     requestBody.token = token;
@@ -125,6 +127,12 @@ const addTokensToRequestBody = (
   }
   if (excludedFiles) {
     requestBody.excluded_files = excludedFiles;
+  }
+  if (includedDirs) {
+    requestBody.included_dirs = includedDirs;
+  }
+  if (includedFiles) {
+    requestBody.included_files = includedFiles;
   }
 };
 
@@ -226,6 +234,10 @@ export default function RepoWikiPage() {
   const excludedFiles = searchParams.get('excluded_files') || '';
   const [modelExcludedDirs, setModelExcludedDirs] = useState(excludedDirs);
   const [modelExcludedFiles, setModelExcludedFiles] = useState(excludedFiles);
+  const includedDirs = searchParams.get('included_dirs') || '';
+  const includedFiles = searchParams.get('included_files') || '';
+  const [modelIncludedDirs, setModelIncludedDirs] = useState(includedDirs);
+  const [modelIncludedFiles, setModelIncludedFiles] = useState(includedFiles);
 
   // Wiki type state - default to comprehensive view
   const isComprehensiveParam = searchParams.get('comprehensive') !== 'false';
@@ -450,7 +462,7 @@ Remember:
         };
 
         // Add tokens if available
-        addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles);
+        addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles, modelIncludedDirs, modelIncludedFiles);
 
         // Use WebSocket for communication
         let content = '';
@@ -2138,6 +2150,10 @@ IMPORTANT:
         setExcludedDirs={setModelExcludedDirs}
         excludedFiles={modelExcludedFiles}
         setExcludedFiles={setModelExcludedFiles}
+        includedDirs={modelIncludedDirs}
+        setIncludedDirs={setModelIncludedDirs}
+        includedFiles={modelIncludedFiles}
+        setIncludedFiles={setModelIncludedFiles}
         onApply={confirmRefresh}
         showWikiType={true}
         showTokenInput={effectiveRepoInfo.type !== 'local' && !currentToken} // Show token input if not local and no current token
