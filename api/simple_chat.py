@@ -77,7 +77,7 @@ async def chat_completions_stream(request: ChatCompletionRequest):
             if hasattr(last_message, 'content') and last_message.content:
                 tokens = count_tokens(last_message.content, request.provider == "ollama")
                 logger.info(f"Request size: {tokens} tokens")
-                if tokens > 8000:
+                if tokens > 10000:
                     logger.warning(f"Request exceeds recommended token limit ({tokens} > 7500)")
                     input_too_large = True
 
@@ -90,7 +90,7 @@ async def chat_completions_stream(request: ChatCompletionRequest):
             excluded_files = None
             included_dirs = None
             included_files = None
-
+            logger.info(f"Using custom xxxcludes: {request.included_dirs}, {request.included_files}")
             if request.excluded_dirs:
                 excluded_dirs = [unquote(dir_path) for dir_path in request.excluded_dirs.split('\n') if dir_path.strip()]
                 logger.info(f"Using custom excluded directories: {excluded_dirs}")

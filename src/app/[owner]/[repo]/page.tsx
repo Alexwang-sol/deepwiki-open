@@ -634,8 +634,7 @@ Remember:
         type: effectiveRepoInfo.type,
         messages: [{
           role: 'user',
-content: `Analyze this GitHub repository ${owner}/${repo} and create a wiki structure for it.
-
+          content: `Analyze this Gitlab repository ${owner}/${repo} and create a wiki structure for it.
 1. The complete file tree of the project:
 <file_tree>
 ${fileTree}
@@ -755,99 +754,40 @@ IMPORTANT:
       };
 
       // Add tokens if available
-      addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles);
-
+      console.log(`test token ${currentToken}`);
+      addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles, modelIncludedDirs, modelIncludedFiles);
+      console.log(`reqbody ${requestBody}`);
       // Use WebSocket for communication
       let responseText = '';
 
-      try {
-        // Create WebSocket URL from the server base URL
-        const serverBaseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL || 'http://localhost:8001';
-        const wsBaseUrl = serverBaseUrl.replace(/^http/, 'ws');
-        const wsUrl = `${wsBaseUrl}/ws/chat`;
+      
+      console.info('reqBody:', requestBody);
+      // Fall back to HTTP if WebSocket fails
+      const response = await fetch(`/api/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error determining wiki structure: ${response.status}`);
+      }
 
-        // Create a new WebSocket connection
-        const ws = new WebSocket(wsUrl);
+      // Process the response
+      responseText = '';
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-        // Create a promise that resolves when the WebSocket connection is complete
-        await new Promise<void>((resolve, reject) => {
-          // Set up event handlers
-          ws.onopen = () => {
-            console.log('WebSocket connection established for wiki structure');
-            // Send the request as JSON
-            ws.send(JSON.stringify(requestBody));
-            resolve();
-          };
+      if (!reader) {
+        throw new Error('Failed to get response reader');
+      }
 
-          ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            reject(new Error('WebSocket connection failed'));
-          };
-
-          // If the connection doesn't open within 5 seconds, fall back to HTTP
-          const timeout = setTimeout(() => {
-            reject(new Error('WebSocket connection timeout'));
-          }, 5000);
-
-          // Clear the timeout if the connection opens successfully
-          ws.onopen = () => {
-            clearTimeout(timeout);
-            console.log('WebSocket connection established for wiki structure');
-            // Send the request as JSON
-            ws.send(JSON.stringify(requestBody));
-            resolve();
-          };
-        });
-
-        // Create a promise that resolves when the WebSocket response is complete
-        await new Promise<void>((resolve, reject) => {
-          // Handle incoming messages
-          ws.onmessage = (event) => {
-            responseText += event.data;
-          };
-
-          // Handle WebSocket close
-          ws.onclose = () => {
-            console.log('WebSocket connection closed for wiki structure');
-            resolve();
-          };
-
-          // Handle WebSocket errors
-          ws.onerror = (error) => {
-            console.error('WebSocket error during message reception:', error);
-            reject(new Error('WebSocket error during message reception'));
-          };
-        });
-      } catch (wsError) {
-        console.error('WebSocket error, falling back to HTTP:', wsError);
-
-        // Fall back to HTTP if WebSocket fails
-        const response = await fetch(`/api/chat/stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-          throw new Error(`Error determining wiki structure: ${response.status}`);
-        }
-
-        // Process the response
-        responseText = '';
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-
-        if (!reader) {
-          throw new Error('Failed to get response reader');
-        }
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          responseText += decoder.decode(value, { stream: true });
-        }
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        responseText += decoder.decode(value, { stream: true });
       }
 
       if(responseText.includes('Error preparing retriever: Environment variable OPENAI_API_KEY must be set')) {
@@ -1225,51 +1165,51 @@ IMPORTANT:
         const filesData: any[] = [];
 
         try {
-          // Step 1: Get project info to determine default branch
-          let projectInfoUrl: string;
-          try {
-            const validatedUrl = new URL(projectDomain ?? ''); // Validate domain
-            projectInfoUrl = `${validatedUrl.origin}/api/v4/projects/${encodedProjectPath}`;
-          } catch (err) {
-            throw new Error(`Invalid project domain URL: ${projectDomain}`);
-          }
-          const projectInfoRes = await fetch(projectInfoUrl, { headers });
+            // Step 1: Get project info to determine default branch
+            let projectInfoUrl: string;
+            try {
+              const validatedUrl = new URL(projectDomain ?? ''); // Validate domain
+              projectInfoUrl = `${validatedUrl.origin}/api/v4/projects/${encodedProjectPath}`;
+            } catch (err) {
+              throw new Error(`Invalid project domain URL: ${projectDomain}`);
+            }
+            const projectInfoRes = await fetch(projectInfoUrl, { headers });
 
-          if (!projectInfoRes.ok) {
-            const errorData = await projectInfoRes.text();
-            throw new Error(`GitLab project info error: Status ${projectInfoRes.status}, Response: ${errorData}`);
-          }
-
-          // Step 2: Paginate to fetch full file tree
-          let page = 1;
-          let morePages = true;
-
-          while (morePages) {
-            const apiUrl = `${projectInfoUrl}/repository/tree?recursive=true&per_page=100&page=${page}`;
-            const response = await fetch(apiUrl, { headers });
-
-            if (!response.ok) {
-                const errorData = await response.text();
-              throw new Error(`Error fetching GitLab repository structure (page ${page}): ${errorData}`);
+            if (!projectInfoRes.ok) {
+              const errorData = await projectInfoRes.text();
+              throw new Error(`GitLab project info error: Status ${projectInfoRes.status}, Response: ${errorData}`);
             }
 
-            const pageData = await response.json();
-            filesData.push(...pageData);
+            // Step 2: Paginate to fetch full file tree
+            let page = 1;
+            let morePages = true;
 
-            const nextPage = response.headers.get('x-next-page');
-            morePages = !!nextPage;
-            page = nextPage ? parseInt(nextPage, 10) : page + 1;
-        }
+            while (morePages) {
+              const apiUrl = `${projectInfoUrl}/repository/tree?recursive=true&per_page=100&page=${page}`;
+              const response = await fetch(apiUrl, { headers });
 
-          if (!Array.isArray(filesData) || filesData.length === 0) {
-            throw new Error('Could not fetch repository structure. Repository might be empty or inaccessible.');
-        }
+              if (!response.ok) {
+                  const errorData = await response.text();
+                throw new Error(`Error fetching GitLab repository structure (page ${page}): ${errorData}`);
+              }
+
+              const pageData = await response.json();
+              filesData.push(...pageData);
+
+              const nextPage = response.headers.get('x-next-page');
+              morePages = !!nextPage;
+              page = nextPage ? parseInt(nextPage, 10) : page + 1;
+          }
+
+            if (!Array.isArray(filesData) || filesData.length === 0) {
+              throw new Error('Could not fetch repository structure. Repository might be empty or inaccessible.');
+          }
 
           // Step 3: Format file paths
-        fileTreeData = filesData
-          .filter((item: { type: string; path: string }) => item.type === 'blob')
-          .map((item: { type: string; path: string }) => item.path)
-          .join('\n');
+          fileTreeData = filesData
+            .filter((item: { type: string; path: string }) => item.type === 'blob')
+            .map((item: { type: string; path: string }) => item.path)
+            .join('\n');
 
           // Step 4: Try to fetch README.md content
           const readmeUrl = `${projectInfoUrl}/repository/files/README.md/raw`;
@@ -1282,7 +1222,7 @@ IMPORTANT:
               console.warn(`Could not fetch GitLab README.md status: ${readmeResponse.status}`);
               }
             } catch (err) {
-            console.warn(`Error fetching GitLab README.md:`, err);
+              console.warn(`Error fetching GitLab README.md:`, err);
             }
         } catch (err) {
           console.error("Error during GitLab repository tree retrieval:", err);
