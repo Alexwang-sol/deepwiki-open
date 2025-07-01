@@ -469,7 +469,7 @@ Remember:
 
         try {
           // Create WebSocket URL from the server base URL
-          const serverBaseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL || 'http://deepwiki-back.test.huya.info';
+          const serverBaseUrl = process.env.SERVER_BASE_URL || 'http://deepwiki-back.test.huya.info';
           const wsBaseUrl = serverBaseUrl.replace(/^http/, 'ws');
           const wsUrl = `${wsBaseUrl}/ws/chat`;
 
@@ -1552,7 +1552,7 @@ IMPORTANT:
             const cachedData = await response.json(); // Returns null if no cache
             if (cachedData && cachedData.wiki_structure && cachedData.generated_pages && Object.keys(cachedData.generated_pages).length > 0) {
               console.log('Using server-cached wiki data');
-              if(cachedData.mode) {
+              if(cachedData.model) {
                 setSelectedModelState(cachedData.model);
               }
               if(cachedData.provider) {
