@@ -469,7 +469,7 @@ Remember:
 
         try {
           // Create WebSocket URL from the server base URL
-          const serverBaseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL || 'http://localhost:8001';
+          const serverBaseUrl = process.env.NEXT_PUBLIC_SERVER_BASE_URL || 'http://deepwiki-back.test.huya.info';
           const wsBaseUrl = serverBaseUrl.replace(/^http/, 'ws');
           const wsUrl = `${wsBaseUrl}/ws/chat`;
 
@@ -1063,6 +1063,10 @@ IMPORTANT:
           const data = await response.json();
           fileTreeData = data.file_tree;
           readmeContent = data.readme;
+
+          if (fileTreeData.split('\n').length > 50) {
+            throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
+          }
         } catch (err) {
           throw err;
         }
@@ -1134,6 +1138,10 @@ IMPORTANT:
           .filter((item: { type: string; path: string }) => item.type === 'blob')
           .map((item: { type: string; path: string }) => item.path)
           .join('\n');
+
+        if (fileTreeData.split('\n').length > 50) {
+          throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
+        }
 
         // Try to fetch README.md content
         try {
@@ -1210,6 +1218,10 @@ IMPORTANT:
             .filter((item: { type: string; path: string }) => item.type === 'blob')
             .map((item: { type: string; path: string }) => item.path)
             .join('\n');
+
+          if (fileTreeData.split('\n').length > 50) {
+            throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
+          }
 
           // Step 4: Try to fetch README.md content
           const readmeUrl = `${projectInfoUrl}/repository/files/README.md/raw`;
@@ -1289,6 +1301,10 @@ IMPORTANT:
           .filter((item: { type: string; path: string }) => item.type === 'commit_file')
           .map((item: { type: string; path: string }) => item.path)
           .join('\n');
+
+        if (fileTreeData.split('\n').length > 50) {
+          throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
+        }
 
         // Try to fetch README.md content
         try {
@@ -1849,13 +1865,14 @@ IMPORTANT:
               <FaExclamationTriangle className="mr-2" />
               <span className="font-bold font-serif">{messages.repoPage?.errorTitle || messages.common?.error || 'Error'}</span>
             </div>
-            <p className="text-[var(--foreground)] text-sm mb-3">{error}</p>
+            <p className="text-[var(--foreground)] text-sm mb-3">{'内部错误'}</p>
             <p className="text-[var(--muted)] text-xs">
-              {embeddingError ? (
-                messages.repoPage?.embeddingErrorDefault || 'This error is related to the document embedding system used for analyzing your repository. Please verify your embedding model configuration, API keys, and try again. If the issue persists, consider switching to a different embedding provider in the model settings.'
-              ) : (
-                messages.repoPage?.errorMessageDefault || 'Please check that your repository exists and is public. Valid formats are "owner/repo", "https://github.com/owner/repo", "https://gitlab.com/owner/repo", "https://bitbucket.org/owner/repo", or local folder paths like "C:\\path\\to\\folder" or "/path/to/folder".'
-              )}
+              {embeddingError
+                ? messages.repoPage?.embeddingErrorDefault ||
+                  'This error is related to the document embedding system used for analyzing your repository. Please verify your embedding model configuration, API keys, and try again. If the issue persists, consider switching to a different embedding provider in the model settings.'
+                : error ||
+                  (messages.repoPage?.errorMessageDefault ||
+                    'Please check that your repository exists and is public. Valid formats are "owner/repo", "https://github.com/owner/repo", "https://gitlab.com/owner/repo", "https://bitbucket.org/owner/repo", or local folder paths like "C:\\path\\to\\folder" or "/path/to/folder".')}
             </p>
             <div className="mt-5">
               <Link
@@ -2096,8 +2113,9 @@ IMPORTANT:
         setIncludedFiles={setModelIncludedFiles}
         onApply={confirmRefresh}
         showWikiType={true}
-        showTokenInput={effectiveRepoInfo.type !== 'local' && !currentToken} // Show token input if not local and no current token
+        showTokenInput={effectiveRepoInfo.type !== 'local'} // Show token input if not local
         repositoryType={effectiveRepoInfo.type as 'github' | 'gitlab' | 'bitbucket'}
+        currentToken={currentToken} // Pass currentToken to ModelSelectionModal
         authRequired={authRequired}
         authCode={authCode}
         setAuthCode={setAuthCode}

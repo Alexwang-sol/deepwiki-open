@@ -380,7 +380,19 @@ export default function Home() {
               </div>
             </div>
           </div>
-
+          <div className="flex items-center gap-6">
+            <div className="flex items-center space-x-5">
+              <a href="https://git.huya.info/huya_infra/deepwiki-open" target="_blank" rel="noopener noreferrer"
+                className="text-[var(--muted)] hover:text-[var(--accent-primary)] transition-colors">
+                <FaGitlab  className="text-xl" />
+              </a>
+              <a href="https://mcp.huya.info/mcp/deepwiki?tab=detail" target="_blank" rel="noopener noreferrer"
+                className="text-[var(--muted)] hover:text-[var(--accent-primary)] transition-colors">
+                <img src="https://athena-local-apihub-1253539814.cos.ap-guangzhou.myqcloud.com/mcp-platform-images/13e0ca17-d7fb-4c4c-bcd2-57f99a065495.svg" className="w-6 h-6"/>
+              </a>
+            </div>
+            <ThemeToggle />
+          </div>
           {/* Configuration Modal */}
           <ConfigurationModal
             isOpen={isConfigModalOpen}
@@ -451,6 +463,7 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
+              
             </div>
 
             {/* Form inside the main content */}
@@ -494,9 +507,6 @@ export default function Home() {
                 <p className="text-sm text-[var(--foreground)] mb-3">{t('home.enterRepoUrl')}</p>
                 <div className="grid grid-cols-1 gap-3 text-xs text-[var(--muted)]">
                   <div className="bg-[var(--background)]/70 p-3 rounded border border-[var(--border-color)] font-mono overflow-x-hidden whitespace-nowrap">https://git.huya.info/huya_infra/deepwiki-open</div>
-                  <div className="bg-[var(--background)]/70 p-3 rounded border border-[var(--border-color)] font-mono overflow-x-hidden whitespace-nowrap">https://gitlab.com/gitlab-org/gitlab</div>
-                  <div className="bg-[var(--background)]/70 p-3 rounded border border-[var(--border-color)] font-mono overflow-x-hidden whitespace-nowrap">HUYAAI/DeepWiki-HUYA</div>
-                  <div className="bg-[var(--background)]/70 p-3 rounded border border-[var(--border-color)] font-mono overflow-x-hidden whitespace-nowrap">https://bitbucket.org/atlassian/atlaskit</div>
                 </div>
               </div>
 
@@ -531,6 +541,7 @@ export default function Home() {
                 showHeader={false}
                 messages={messages}
                 className="w-full"
+                token={accessToken}
               />
             </div>
           )}
@@ -541,20 +552,6 @@ export default function Home() {
         <div
           className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 p-4">
           <p className="text-[var(--muted)] text-sm font-serif">{t('footer.copyright')}</p>
-
-          <div className="flex items-center gap-6">
-            <div className="flex items-center space-x-5">
-              <a href="https://git.huya.info/huya_infra/deepwiki-open" target="_blank" rel="noopener noreferrer"
-                className="text-[var(--muted)] hover:text-[var(--accent-primary)] transition-colors">
-                <FaGitlab  className="text-xl" />
-              </a>
-              <a href="https://mcp.huya.info/mcp/deepwiki?tab=detail" target="_blank" rel="noopener noreferrer"
-                 className="text-[var(--muted)] hover:text-[var(--accent-primary)] transition-colors">
-                <img src="https://athena-local-apihub-1253539814.cos.ap-guangzhou.myqcloud.com/mcp-platform-images/13e0ca17-d7fb-4c4c-bcd2-57f99a065495.svg" className="w-4 h-4"/>
-              </a>
-            </div>
-            <ThemeToggle />
-          </div>
         </div>
       </footer>
     </div>

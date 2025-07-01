@@ -12,19 +12,12 @@
         "deepseek/deepseek-v3-250324": {
           "temperature": 0.7,
           "top_p": 0.8
-        }
-      }
-    },
-    "azure": {
-      "client_class": "AzureAIClient",
-      "default_model": "azure/o4-mini",
-      "supportsCustomModel": true,
-      "models": {
-        "azure/o4-mini": {
+        },
+        "huya/deepseek-r1": {
           "temperature": 0.7,
           "top_p": 0.8
         },
-        "azure/gpt-4.1": {
+        "huya/qwen2.5-coder-32b": {
           "temperature": 0.7,
           "top_p": 0.8
         }

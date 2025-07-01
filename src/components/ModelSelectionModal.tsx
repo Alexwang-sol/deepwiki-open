@@ -38,6 +38,7 @@ interface ModelSelectionModalProps {
   // Token input for refresh
   showTokenInput?: boolean;
   repositoryType?: 'github' | 'gitlab' | 'bitbucket';
+  currentToken?: string; // Add currentToken prop
   // Authentication
   authRequired?: boolean;
   authCode?: string;
@@ -75,6 +76,7 @@ export default function ModelSelectionModal({
   showWikiType = true,
   showTokenInput = false,
   repositoryType = 'github',
+  currentToken, // Destructure currentToken
 }: ModelSelectionModalProps) {
   const { messages: t } = useLanguage();
 
@@ -90,7 +92,7 @@ export default function ModelSelectionModal({
   const [localIncludedFiles, setLocalIncludedFiles] = useState(includedFiles);
   
   // Token input state
-  const [localAccessToken, setLocalAccessToken] = useState('');
+  const [localAccessToken, setLocalAccessToken] = useState(currentToken || ''); // Initialize with currentToken
   const [localSelectedPlatform, setLocalSelectedPlatform] = useState<'github' | 'gitlab' | 'bitbucket'>(repositoryType);
   const [showTokenSection, setShowTokenSection] = useState(showTokenInput);
 
@@ -107,10 +109,10 @@ export default function ModelSelectionModal({
       setLocalIncludedDirs(includedDirs);
       setLocalIncludedFiles(includedFiles);
       setLocalSelectedPlatform(repositoryType);
-      setLocalAccessToken('');
+      setLocalAccessToken(currentToken || ''); // Reset with currentToken
       setShowTokenSection(showTokenInput);
     }
-  }, [isOpen, provider, model, isCustomModel, customModel, isComprehensiveView, excludedDirs, excludedFiles, includedDirs, includedFiles, repositoryType, showTokenInput]);
+  }, [isOpen, provider, model, isCustomModel, customModel, isComprehensiveView, excludedDirs, excludedFiles, includedDirs, includedFiles, repositoryType, showTokenInput, currentToken]);
 
   // Handler for applying changes
   const handleApply = () => {
