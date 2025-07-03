@@ -1,5 +1,7 @@
 .docker-image:
   image: registry-haiyan2.local.huya.com/library/docker:19.03.5 # registry-haiyan2.local.huya.com/baseimg/centos7:latest
+  tags:
+    - docker-in-docker
   before_script:
     - docker version
     - harborhost=harbor.huya.info
@@ -11,18 +13,53 @@
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
     FF_TIMESTAMPS: "true"
-    TIMEZONE: "Europe/Paris"
+    TIMEZONE: "Asia/Shanghai"
   services:
     - name: docker:28.0.4-dind
       alias: docker
 
 
-image_build:
+# image_build:
+#   extends: .docker-image
+#   stage: build
+#   script:
+#     - echo "OPENAI_API_KEY=${PIOLT_TOKEN}" >> .env
+#     - echo "OPENAI_BASE_URL=https://copilot.huya.info/openai/api/v1" >> .env
+#     - imgname=harbor_monorepo/deepwiki
+#     - docker build -t ${harbortesthost}/${imgname}:${timetag} .
+#     - docker push ${harbortesthost}/${imgname}:${timetag}
+
+
+build-frontend:
   extends: .docker-image
   stage: build
   script:
     - echo "OPENAI_API_KEY=${PIOLT_TOKEN}" >> .env
     - echo "OPENAI_BASE_URL=https://copilot.huya.info/openai/api/v1" >> .env
-    - imgname=harbor_monorepo/deepwiki
-    - docker build -t ${harbortesthost}/${imgname}:${timetag} .
+    - imgname=harbor_monorepo/deepwiki-frontend
+    - docker build -f frontend.dockerfile -t ${harbortesthost}/${imgname}:${timetag} .
     - docker push ${harbortesthost}/${imgname}:${timetag}
+  rules:
+    - changes:
+        - src/**/*
+        - frontend.dockerfile
+        - package.json
+        - package-lock.json
+        - next.config.ts
+        - tsconfig.json
+        - tailwind.config.js
+        - postcss.config.mjs
+
+build-backend:
+  extends: .docker-image
+  stage: build
+  script:
+    - echo "OPENAI_API_KEY=${PIOLT_TOKEN}" >> .env
+    - echo "OPENAI_BASE_URL=https://copilot.huya.info/openai/api/v1" >> .env
+    - imgname=harbor_monorepo/deepwiki-backend
+    - docker build -f backend.dockerfile -t ${harbortesthost}/${imgname}:${timetag} .
+    - docker push ${harbortesthost}/${imgname}:${timetag}
+  rules:
+    - changes:
+        - api/**/*
+        - backend.dockerfile

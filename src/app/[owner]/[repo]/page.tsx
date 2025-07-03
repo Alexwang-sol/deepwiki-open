@@ -469,7 +469,7 @@ Remember:
 
         try {
           // Create WebSocket URL from the server base URL
-          const serverBaseUrl = process.env.SERVER_BASE_URL || 'http://deepwiki-back.test.huya.info';
+          const serverBaseUrl = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.test.huya.info';
           const wsBaseUrl = serverBaseUrl.replace(/^http/, 'ws');
           const wsUrl = `${wsBaseUrl}/ws/chat`;
 

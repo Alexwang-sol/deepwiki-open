@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-back.test.huya.info';
+const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.test.huya.info';
 
 export async function GET(request: NextRequest) {
   try {

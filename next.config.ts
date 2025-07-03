@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-back.test.huya.info';
+const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.test.huya.info';
 
 const nextConfig: NextConfig = {
   /* config options here */
