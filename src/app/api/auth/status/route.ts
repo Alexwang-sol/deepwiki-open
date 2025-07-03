@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'https://deepwiki-backend.test.huya.info';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Forward the request to the backend API
     const response = await fetch(`${TARGET_SERVER_BASE_URL}/auth/status`, {
