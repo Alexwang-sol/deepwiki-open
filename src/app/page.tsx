@@ -4,7 +4,7 @@ import ConfigurationModal from '@/components/ConfigurationModal';
 import ProcessedProjects from '@/components/ProcessedProjects';
 import ThemeToggle from '@/components/theme-toggle';
 import { useProcessedProjects } from '@/hooks/useProcessedProjects';
-import { extractUrlDomain, extractUrlPath } from '@/utils/urlDecoder';
+import { extractUrlDomain, extractUrlPath, getGitPathInRepo } from '@/utils/urlDecoder';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -162,12 +162,13 @@ export default function Home() {
     repo: string,
     type: string,
     fullPath?: string,
-    localPath?: string
+    localPath?: string,
+    repoPath?: string
   } | null => {
     input = input.trim();
 
     let owner = '', repo = '', type = 'github', fullPath;
-    let localPath: string | undefined;
+    let localPath: string | undefined, repoPath: string | undefined;
 
     // Handle Windows absolute paths (e.g., C:\path\to\folder)
     const windowsPathRegex = /^[a-zA-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*$/;
@@ -236,7 +237,9 @@ export default function Home() {
       repo = repo.slice(0, -4);
     }
 
-    return { owner, repo, type, fullPath, localPath };
+    repoPath = getGitPathInRepo(input)
+
+    return { owner, repo, type, fullPath, localPath, repoPath};
   };
 
   // State for configuration modal
@@ -311,10 +314,18 @@ export default function Home() {
       return;
     }
 
-    const { owner, repo, type, localPath } = parsedRepo;
+    const { owner, repo, type, localPath, repoPath } = parsedRepo;
 
     // Store tokens in query params if they exist
     const params = new URLSearchParams();
+
+    let finalIncludedDirs = includedDirs;
+    let finalIncludedFiles = includedFiles;
+
+    if (repoPath) {
+      finalIncludedDirs = repoPath; // Assuming repoPath is already a string like "dir1/dir2"
+      finalIncludedFiles = ''; // Clear includedFiles
+    }
     if (accessToken) {
       params.append('token', accessToken);
     }
@@ -339,11 +350,11 @@ export default function Home() {
     if (excludedFiles) {
       params.append('excluded_files', excludedFiles);
     }
-    if (includedDirs) {
-      params.append('included_dirs', includedDirs);
+    if (finalIncludedDirs) {
+      params.append('included_dirs', finalIncludedDirs);
     }
-    if (includedFiles) {
-      params.append('included_files', includedFiles);
+    if (finalIncludedFiles) {
+      params.append('included_files', finalIncludedFiles);
     }
 
     // Add language parameter

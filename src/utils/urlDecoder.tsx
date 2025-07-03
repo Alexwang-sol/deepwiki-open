@@ -26,7 +26,7 @@ export function getGitRepoBaseUrl(input: string): string {
     }
 }
 
-export function getGitPathInRepo(input: string): string | null {
+export function getGitPathInRepo(input: string): string | undefined {
     try {
         const normalizedInput = input.startsWith('http') ? input : `https://${input}`;
         const url = new URL(normalizedInput);
@@ -38,10 +38,10 @@ export function getGitPathInRepo(input: string): string | null {
         if (match) {
             return match[2] ? match[2].replace(/^\/|\/$/g, '') : ''; // Return pathInRepo, remove leading/trailing slashes
         } else {
-            return null; // Not a Git repo URL of the specified format
+            return undefined; // Not a Git repo URL of the specified format
         }
     } catch {
-        return null; // Not a valid URL
+        return undefined; // Not a valid URL
     }
 }
 
