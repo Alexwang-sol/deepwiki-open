@@ -193,6 +193,8 @@ export default function Home() {
         type = 'github';
       } else if (domain?.includes('gitlab.com') || domain?.includes('gitlab.')) {
         type = 'gitlab';
+      } else if (domain?.includes('huya.com') || domain?.includes('huya.info') || domain?.includes('huya.')) {
+        type = 'gitlab';
       } else if (domain?.includes('bitbucket.org') || domain?.includes('bitbucket.')) {
         type = 'bitbucket';
       } else {
