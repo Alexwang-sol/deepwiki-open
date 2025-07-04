@@ -4,7 +4,7 @@ import ConfigurationModal from '@/components/ConfigurationModal';
 import ProcessedProjects from '@/components/ProcessedProjects';
 import ThemeToggle from '@/components/theme-toggle';
 import { useProcessedProjects } from '@/hooks/useProcessedProjects';
-import { extractUrlDomain, extractUrlPath, getGitPathInRepo } from '@/utils/urlDecoder';
+import { extractUrlDomain, extractUrlPath, getGitPathInRepo, getGitRepoBaseUrl } from '@/utils/urlDecoder';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -163,12 +163,12 @@ export default function Home() {
     type: string,
     fullPath?: string,
     localPath?: string,
-    repoPath?: string
+    subPath?: string
   } | null => {
     input = input.trim();
 
     let owner = '', repo = '', type = 'github', fullPath;
-    let localPath: string | undefined, repoPath: string | undefined;
+    let localPath: string | undefined, subPath: string | undefined;
 
     // Handle Windows absolute paths (e.g., C:\path\to\folder)
     const windowsPathRegex = /^[a-zA-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*$/;
@@ -237,9 +237,9 @@ export default function Home() {
       repo = repo.slice(0, -4);
     }
 
-    repoPath = getGitPathInRepo(input)
+    subPath = getGitPathInRepo(input)
 
-    return { owner, repo, type, fullPath, localPath, repoPath};
+    return { owner, repo, type, fullPath, localPath, subPath};
   };
 
   // State for configuration modal
@@ -314,7 +314,7 @@ export default function Home() {
       return;
     }
 
-    const { owner, repo, type, localPath, repoPath } = parsedRepo;
+    const { owner, repo, type, localPath, subPath } = parsedRepo;
 
     // Store tokens in query params if they exist
     const params = new URLSearchParams();
@@ -322,9 +322,10 @@ export default function Home() {
     let finalIncludedDirs = includedDirs;
     let finalIncludedFiles = includedFiles;
 
-    if (repoPath) {
-      finalIncludedDirs = repoPath; // Assuming repoPath is already a string like "dir1/dir2"
+    if (subPath) {
+      finalIncludedDirs = subPath; // Assuming subPath is already a string like "dir1/dir2"
       finalIncludedFiles = ''; // Clear includedFiles
+      params.append('sub_path', subPath);
     }
     if (accessToken) {
       params.append('token', accessToken);
@@ -335,7 +336,8 @@ export default function Home() {
     if (localPath) {
       params.append('local_path', encodeURIComponent(localPath));
     } else {
-      params.append('repo_url', encodeURIComponent(repositoryInput));
+      let gitRepo = getGitRepoBaseUrl(repositoryInput);
+      params.append('repo_url', encodeURIComponent(gitRepo));
     }
     // Add model parameters
     params.append('provider', provider);

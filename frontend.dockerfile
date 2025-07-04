@@ -8,7 +8,7 @@ FROM harbor-yctest.huya.info/harbor_docker/node:20-alpine AS node_base
 FROM node_base AS node_deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --registry=https://npm.huya.info
 
 FROM node_base AS node_builder
 WORKDIR /app
@@ -74,6 +74,6 @@ RUN ls -la /app
 EXPOSE 3000
 
 # Command to run the application.
-# This CMD is designed for debugging. If start.sh exists, it runs it.
+# If start.sh exists, it runs it.
 # If not, it keeps the container alive so you can exec into it.
 CMD ["sh", "-c", "if [ -f /app/start.sh ]; then /app/start.sh; else echo 'Error: /app/start.sh not found. Keeping container alive for debugging.' && sleep infinity; fi"]

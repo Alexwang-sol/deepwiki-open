@@ -16,6 +16,14 @@ FROM harbor-yctest.huya.info/harbor_docker/python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+# Install Node.js and npm
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Update certificates if custom ones were provided and copied successfully
 RUN if [ -n "${CUSTOM_CERT_DIR}" ]; then \
         mkdir -p /usr/local/share/ca-certificates && \

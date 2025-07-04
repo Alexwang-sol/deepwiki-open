@@ -96,6 +96,7 @@ class WikiCacheRequest(BaseModel):
     generated_pages: Dict[str, WikiPage]
     provider: str
     model: str
+    sub_path: str
 
 class WikiExportRequest(BaseModel):
     """
@@ -415,14 +416,17 @@ app.add_websocket_route("/ws/chat", handle_websocket_chat)
 WIKI_CACHE_DIR = os.path.join(get_adalflow_default_root_path(), "wikicache")
 os.makedirs(WIKI_CACHE_DIR, exist_ok=True)
 
-def get_wiki_cache_path(owner: str, repo: str, repo_type: str, language: str) -> str:
+def get_wiki_cache_path(owner: str, repo: str, repo_type: str, language: str, sub_path: str) -> str:
     """Generates the file path for a given wiki cache."""
-    filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}@{language}.json"
+    if sub_path :
+        filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}:{sub_path}@{language}.json"
+    else :
+        filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}@{language}.json"
     return os.path.join(WIKI_CACHE_DIR, filename)
 
-async def read_wiki_cache(owner: str, repo: str, repo_type: str, language: str) -> Optional[WikiCacheData]:
+async def read_wiki_cache(owner: str, repo: str, repo_type: str, language: str, sub_path: str) -> Optional[WikiCacheData]:
     """Reads wiki cache data from the file system."""
-    cache_path = get_wiki_cache_path(owner, repo, repo_type, language)
+    cache_path = get_wiki_cache_path(owner, repo, repo_type, language, sub_path)
     if os.path.exists(cache_path):
         try:
             with open(cache_path, 'r', encoding='utf-8') as f:
@@ -435,7 +439,7 @@ async def read_wiki_cache(owner: str, repo: str, repo_type: str, language: str) 
 
 async def save_wiki_cache(data: WikiCacheRequest) -> bool:
     """Saves wiki cache data to the file system."""
-    cache_path = get_wiki_cache_path(data.repo.owner, data.repo.repo, data.repo.type, data.language)
+    cache_path = get_wiki_cache_path(data.repo.owner, data.repo.repo, data.repo.type, data.language, data.sub_path)
     logger.info(f"Attempting to save wiki cache. Path: {cache_path}")
     try:
         payload = WikiCacheData(
@@ -473,7 +477,8 @@ async def get_cached_wiki(
     owner: str = Query(..., description="Repository owner"),
     repo: str = Query(..., description="Repository name"),
     repo_type: str = Query(..., description="Repository type (e.g., github, gitlab)"),
-    language: str = Query(..., description="Language of the wiki content")
+    language: str = Query(..., description="Language of the wiki content"),
+    sub_path: str = Query(..., description="Subpath of Repo")
 ):
     """
     Retrieves cached wiki data (structure and generated pages) for a repository.
@@ -484,7 +489,7 @@ async def get_cached_wiki(
         language = configs["lang_config"]["default"]
 
     logger.info(f"Attempting to retrieve wiki cache for {owner}/{repo} ({repo_type}), lang: {language}")
-    cached_data = await read_wiki_cache(owner, repo, repo_type, language)
+    cached_data = await read_wiki_cache(owner, repo, repo_type, language, sub_path)
     if cached_data:
         return cached_data
     else:

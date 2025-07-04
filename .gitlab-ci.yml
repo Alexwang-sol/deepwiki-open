@@ -15,7 +15,7 @@
     FF_TIMESTAMPS: "true"
     TIMEZONE: "Asia/Shanghai"
   services:
-    - name: docker:28.0.4-dind
+    - name: harbor-yctest.huya.info/harbor_docker/docker:28.0.4-dind
       alias: docker
 
 

@@ -106,7 +106,8 @@ const addTokensToRequestBody = (
   excludedDirs?: string,
   excludedFiles?: string,
   includedDirs?: string,
-  includedFiles?: string
+  includedFiles?: string,
+  subPath?:string // 添加 subPath 参数
 ): void => {
   if (token !== '') {
     requestBody.token = token;
@@ -133,6 +134,9 @@ const addTokensToRequestBody = (
   }
   if (includedFiles) {
     requestBody.included_files = includedFiles;
+  }
+  if (subPath) {
+    requestBody.sub_path = subPath;
   }
 };
 
@@ -192,6 +196,7 @@ export default function RepoWikiPage() {
   const isCustomModelParam = searchParams.get('is_custom_model') === 'true';
   const customModelParam = searchParams.get('custom_model') || '';
   const language = searchParams.get('language') || 'en';
+  const subPathParam = searchParams.get('sub_path') || ''; // 获取 sub_path
 
   // Import language context for translations
   const { messages } = useLanguage();
@@ -362,8 +367,8 @@ export default function RepoWikiPage() {
         const repoUrl = getRepoUrl(effectiveRepoInfo);
 
         // Create the prompt content - simplified to avoid message dialogs
- const promptContent =
-`You are an expert technical writer and software architect.
+        const promptContent =
+          `You are an expert technical writer and software architect.
 Your task is to generate a comprehensive and accurate technical wiki page in Markdown format about a specific feature, system, or module within a given software project.
 
 You will be given:
@@ -438,11 +443,11 @@ Based ONLY on the content of the \`[RELEVANT_SOURCE_FILES]\`:
 
 IMPORTANT: Generate the content in ${language === 'en' ? 'English' :
             language === 'ja' ? 'Japanese (日本語)' :
-            language === 'zh' ? 'Mandarin Chinese (中文)' :
-            language === 'zh-tw' ? 'Traditional Chinese (繁體中文)' :
-            language === 'es' ? 'Spanish (Español)' :
-            language === 'kr' ? 'Korean (한국어)' :
-            language === 'vi' ? 'Vietnamese (Tiếng Việt)' : 'English'} language.
+              language === 'zh' ? 'Mandarin Chinese (中文)' :
+                language === 'zh-tw' ? 'Traditional Chinese (繁體中文)' :
+                  language === 'es' ? 'Spanish (Español)' :
+                    language === 'kr' ? 'Korean (한국어)' :
+                      language === 'vi' ? 'Vietnamese (Tiếng Việt)' : 'English'} language.
 
 Remember:
 - Ground every claim in the provided source files.
@@ -462,108 +467,46 @@ Remember:
         };
 
         // Add tokens if available
-        addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles, modelIncludedDirs, modelIncludedFiles);
+        addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles, modelIncludedDirs, modelIncludedFiles, subPathParam);
 
         // Use WebSocket for communication
         let content = '';
 
+        // Fall back to HTTP if WebSocket fails
+        const response = await fetch(`/api/chat/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'No error details available');
+          console.error(`API error (${response.status}): ${errorText}`);
+          throw new Error(`Error generating page content: ${response.status} - ${response.statusText}`);
+        }
+
+        // Process the response
+        content = '';
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('Failed to get response reader');
+        }
+
         try {
-          // Create WebSocket URL from the server base URL
-          const serverBaseUrl = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.test.huya.info';
-          const wsBaseUrl = serverBaseUrl.replace(/^http/, 'ws');
-          const wsUrl = `${wsBaseUrl}/ws/chat`;
-
-          // Create a new WebSocket connection
-          const ws = new WebSocket(wsUrl);
-
-          // Create a promise that resolves when the WebSocket connection is complete
-          await new Promise<void>((resolve, reject) => {
-            // Set up event handlers
-            ws.onopen = () => {
-              console.log(`WebSocket connection established for page: ${page.title}`);
-              // Send the request as JSON
-              ws.send(JSON.stringify(requestBody));
-              resolve();
-            };
-
-            ws.onerror = (error) => {
-              console.error('WebSocket error:', error);
-              reject(new Error('WebSocket connection failed'));
-            };
-
-            // If the connection doesn't open within 5 seconds, fall back to HTTP
-            const timeout = setTimeout(() => {
-              reject(new Error('WebSocket connection timeout'));
-            }, 5000);
-
-            // Clear the timeout if the connection opens successfully
-            ws.onopen = () => {
-              clearTimeout(timeout);
-              console.log(`WebSocket connection established for page: ${page.title}`);
-              // Send the request as JSON
-              ws.send(JSON.stringify(requestBody));
-              resolve();
-            };
-          });
-
-          // Create a promise that resolves when the WebSocket response is complete
-          await new Promise<void>((resolve, reject) => {
-            // Handle incoming messages
-            ws.onmessage = (event) => {
-              content += event.data;
-            };
-
-            // Handle WebSocket close
-            ws.onclose = () => {
-              console.log(`WebSocket connection closed for page: ${page.title}`);
-              resolve();
-            };
-
-            // Handle WebSocket errors
-            ws.onerror = (error) => {
-              console.error('WebSocket error during message reception:', error);
-              reject(new Error('WebSocket error during message reception'));
-            };
-          });
-        } catch (wsError) {
-          console.error('WebSocket error, falling back to HTTP:', wsError);
-
-          // Fall back to HTTP if WebSocket fails
-          const response = await fetch(`/api/chat/stream`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text().catch(() => 'No error details available');
-            console.error(`API error (${response.status}): ${errorText}`);
-            throw new Error(`Error generating page content: ${response.status} - ${response.statusText}`);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            content += decoder.decode(value, { stream: true });
           }
-
-          // Process the response
-          content = '';
-          const reader = response.body?.getReader();
-          const decoder = new TextDecoder();
-
-          if (!reader) {
-            throw new Error('Failed to get response reader');
-          }
-
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              content += decoder.decode(value, { stream: true });
-            }
-            // Ensure final decoding
-            content += decoder.decode();
-          } catch (readError) {
-            console.error('Error reading stream:', readError);
-            throw new Error('Error processing response stream');
-          }
+          // Ensure final decoding
+          content += decoder.decode();
+        } catch (readError) {
+          console.error('Error reading stream:', readError);
+          throw new Error('Error processing response stream');
         }
 
         // Clean up markdown delimiters
@@ -648,12 +591,12 @@ ${readme}
 I want to create a wiki for this repository. Determine the most logical structure for a wiki based on the repository's content.
 
 IMPORTANT: The wiki content will be generated in ${language === 'en' ? 'English' :
-            language === 'ja' ? 'Japanese (日本語)' :
-            language === 'zh' ? 'Mandarin Chinese (中文)' :
-            language === 'zh-tw' ? 'Traditional Chinese (繁體中文)' :
-            language === 'es' ? 'Spanish (Español)' :
-            language === 'kr' ? 'Korean (한国語)' :
-            language === 'vi' ? 'Vietnamese (Tiếng Việt)' : 'English'} language.
+              language === 'ja' ? 'Japanese (日本語)' :
+                language === 'zh' ? 'Mandarin Chinese (中文)' :
+                  language === 'zh-tw' ? 'Traditional Chinese (繁體中文)' :
+                    language === 'es' ? 'Spanish (Español)' :
+                      language === 'kr' ? 'Korean (한国語)' :
+                        language === 'vi' ? 'Vietnamese (Tiếng Việt)' : 'English'} language.
 
 When designing the wiki structure, include pages that would benefit from visual diagrams, such as:
 - Architecture overviews
@@ -755,12 +698,12 @@ IMPORTANT:
 
       // Add tokens if available
       console.log(`test token ${currentToken}`);
-      addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles, modelIncludedDirs, modelIncludedFiles);
+      addTokensToRequestBody(requestBody, currentToken, effectiveRepoInfo.type, selectedProviderState, selectedModelState, isCustomSelectedModelState, customSelectedModelState, language, modelExcludedDirs, modelExcludedFiles, modelIncludedDirs, modelIncludedFiles, subPathParam);
       console.log(`reqbody ${requestBody}`);
       // Use WebSocket for communication
       let responseText = '';
 
-      
+
       console.info('reqBody:', requestBody);
       // Fall back to HTTP if WebSocket fails
       const response = await fetch(`/api/chat/stream`, {
@@ -770,7 +713,7 @@ IMPORTANT:
         },
         body: JSON.stringify(requestBody)
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error determining wiki structure: ${response.status}`);
       }
@@ -790,17 +733,17 @@ IMPORTANT:
         responseText += decoder.decode(value, { stream: true });
       }
 
-      if(responseText.includes('Error preparing retriever: Environment variable OPENAI_API_KEY must be set')) {
-         setEmbeddingError(true);
-         throw new Error('OPENAI_API_KEY environment variable is not set. Please configure your OpenAI API key.');
-       }
+      if (responseText.includes('Error preparing retriever: Environment variable OPENAI_API_KEY must be set')) {
+        setEmbeddingError(true);
+        throw new Error('OPENAI_API_KEY environment variable is not set. Please configure your OpenAI API key.');
+      }
 
-       if(responseText.includes('Ollama model') && responseText.includes('not found')) {
-         setEmbeddingError(true);
-         throw new Error('The specified Ollama embedding model was not found. Please ensure the model is installed locally or select a different embedding model in the configuration.');
-       }
+      if (responseText.includes('Ollama model') && responseText.includes('not found')) {
+        setEmbeddingError(true);
+        throw new Error('The specified Ollama embedding model was not found. Please ensure the model is installed locally or select a different embedding model in the configuration.');
+      }
 
-        // Clean up markdown delimiters
+      // Clean up markdown delimiters
       responseText = responseText.replace(/^```(?:xml)?\s*/i, '').replace(/```\s*$/i, '');
 
       // Extract wiki structure from response
@@ -1081,16 +1024,16 @@ IMPORTANT:
           if (!repoUrl) {
             return 'https://api.github.com'; // Default to public GitHub
           }
-          
+
           try {
             const url = new URL(repoUrl);
             const hostname = url.hostname;
-            
+
             // If it's the public GitHub, use the standard API URL
             if (hostname === 'github.com') {
               return 'https://api.github.com';
             }
-            
+
             // For GitHub Enterprise, use the enterprise API URL format
             // GitHub Enterprise API URL format: https://github.company.com/api/v3
             return `${url.protocol}//${hostname}/api/v3`;
@@ -1173,51 +1116,66 @@ IMPORTANT:
         const filesData: any[] = [];
 
         try {
-            // Step 1: Get project info to determine default branch
-            let projectInfoUrl: string;
-            try {
-              const validatedUrl = new URL(projectDomain ?? ''); // Validate domain
-              projectInfoUrl = `${validatedUrl.origin}/api/v4/projects/${encodedProjectPath}`;
-            } catch (err) {
-              throw new Error(`Invalid project domain URL: ${projectDomain}`);
-            }
-            const projectInfoRes = await fetch(projectInfoUrl, { headers });
+          // Step 1: Get project info to determine default branch
+          let projectInfoUrl: string;
+          try {
+            const validatedUrl = new URL(projectDomain ?? ''); // Validate domain
+            projectInfoUrl = `${validatedUrl.origin}/api/v4/projects/${encodedProjectPath}`;
+          } catch (err) {
+            throw new Error(`Invalid project domain URL: ${projectDomain}`);
+          }
+          const projectInfoRes = await fetch(projectInfoUrl, { headers });
 
-            if (!projectInfoRes.ok) {
-              const errorData = await projectInfoRes.text();
-              throw new Error(`GitLab project info error: Status ${projectInfoRes.status}, Response: ${errorData}`);
-            }
-
-            // Step 2: Paginate to fetch full file tree
-            let page = 1;
-            let morePages = true;
-
-            while (morePages) {
-              const apiUrl = `${projectInfoUrl}/repository/tree?recursive=true&per_page=100&page=${page}`;
-              const response = await fetch(apiUrl, { headers });
-
-              if (!response.ok) {
-                  const errorData = await response.text();
-                throw new Error(`Error fetching GitLab repository structure (page ${page}): ${errorData}`);
-              }
-
-              const pageData = await response.json();
-              filesData.push(...pageData);
-
-              const nextPage = response.headers.get('x-next-page');
-              morePages = !!nextPage;
-              page = nextPage ? parseInt(nextPage, 10) : page + 1;
+          if (!projectInfoRes.ok) {
+            const errorData = await projectInfoRes.text();
+            throw new Error(`GitLab project info error: Status ${projectInfoRes.status}, Response: ${errorData}`);
           }
 
-            if (!Array.isArray(filesData) || filesData.length === 0) {
-              throw new Error('Could not fetch repository structure. Repository might be empty or inaccessible.');
+          // Step 2: Paginate to fetch full file tree
+          let page = 1;
+          let morePages = true;
+
+          while (morePages) {
+            const apiUrl = `${projectInfoUrl}/repository/tree?recursive=true&per_page=100&page=${page}`;
+            const response = await fetch(apiUrl, { headers });
+
+            if (!response.ok) {
+              const errorData = await response.text();
+              throw new Error(`Error fetching GitLab repository structure (page ${page}): ${errorData}`);
+            }
+
+            const pageData = await response.json();
+            filesData.push(...pageData);
+
+            const nextPage = response.headers.get('x-next-page');
+            morePages = !!nextPage;
+            page = nextPage ? parseInt(nextPage, 10) : page + 1;
+          }
+
+          if (!Array.isArray(filesData) || filesData.length === 0) {
+            throw new Error('Could not fetch repository structure. Repository might be empty or inaccessible.');
           }
 
           // Step 3: Format file paths
-          fileTreeData = filesData
-            .filter((item: { type: string; path: string }) => item.type === 'blob')
-            .map((item: { type: string; path: string }) => item.path)
-            .join('\n');
+          // fileTreeData = filesData
+          //   .filter((item: { type: string; path: string }) => item.type === 'blob')
+          //   .map((item: { type: string; path: string }) => item.path)
+          //   .join('\n');
+          // Convert files data to a string representation
+          let fileItems = filesData.filter((item: { type: string; path: string }) => item.type === 'blob');
+
+          // Filter by included directories if specified
+          if (modelIncludedDirs) {
+            const includeDirsArray = modelIncludedDirs.split('\n').map(dir => dir.trim()).filter(dir => dir);
+            if (includeDirsArray.length > 0) {
+              fileItems = fileItems.filter((item: { path: string }) =>
+                includeDirsArray.some(dir => item.path.startsWith(dir))
+              );
+            }
+          }
+
+          fileTreeData = fileItems.map((item: { path: string }) => item.path).join('\n');
+          console.log(`test ${fileTreeData}`);
 
           if (fileTreeData.split('\n').length > 50) {
             throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
@@ -1225,17 +1183,17 @@ IMPORTANT:
 
           // Step 4: Try to fetch README.md content
           const readmeUrl = `${projectInfoUrl}/repository/files/README.md/raw`;
-            try {
+          try {
             const readmeResponse = await fetch(readmeUrl, { headers });
-              if (readmeResponse.ok) {
-                readmeContent = await readmeResponse.text();
-                console.log('Successfully fetched GitLab README.md');
-              } else {
+            if (readmeResponse.ok) {
+              readmeContent = await readmeResponse.text();
+              console.log('Successfully fetched GitLab README.md');
+            } else {
               console.warn(`Could not fetch GitLab README.md status: ${readmeResponse.status}`);
-              }
-            } catch (err) {
-              console.warn(`Error fetching GitLab README.md:`, err);
             }
+          } catch (err) {
+            console.warn(`Error fetching GitLab README.md:`, err);
+          }
         } catch (err) {
           console.error("Error during GitLab repository tree retrieval:", err);
           throw err;
@@ -1296,11 +1254,11 @@ IMPORTANT:
           }
         }
 
-        // Convert files data to a string representation
         fileTreeData = filesData.values
           .filter((item: { type: string; path: string }) => item.type === 'commit_file')
           .map((item: { type: string; path: string }) => item.path)
           .join('\n');
+
 
         if (fileTreeData.split('\n').length > 50) {
           throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
@@ -1325,6 +1283,7 @@ IMPORTANT:
       }
 
       // Now determine the wiki structure
+      console.log(`determinWiki ${owner}, ${repo}`)
       await determineWikiStructure(fileTreeData, readmeContent, owner, repo);
 
     } catch (error) {
@@ -1433,6 +1392,7 @@ IMPORTANT:
         custom_model: customSelectedModelState,
         comprehensive: isComprehensiveView.toString(),
         authorization_code: authCode,
+        sub_path: subPathParam, // Add sub_path here
       });
 
       // Add file filters configuration
@@ -1443,7 +1403,7 @@ IMPORTANT:
         params.append('excluded_files', modelExcludedFiles);
       }
 
-      if(authRequired && !authCode) {
+      if (authRequired && !authCode) {
         setIsLoading(false);
         console.error("Authorization code is required");
         setError('Authorization code is required');
@@ -1466,7 +1426,7 @@ IMPORTANT:
         console.warn(`Failed to clear server-side wiki cache (status: ${response.status}): ${errorText}. Proceeding with refresh anyway.`);
         // Optionally, inform the user about the cache clear failure but that refresh will still attempt
         // setError(\`Cache clear failed: ${errorText}. Trying to refresh...\`);
-        if(response.status == 401) {
+        if (response.status === 401) {
           setIsLoading(false);
           setLoadingMessage(undefined);
           setError('Failed to validate the authorization code');
@@ -1545,6 +1505,7 @@ IMPORTANT:
             repo_type: effectiveRepoInfo.type,
             language: language,
             comprehensive: isComprehensiveView.toString(),
+            sub_path:subPathParam, // Add sub_path here
           });
           const response = await fetch(`/api/wiki_cache?${params.toString()}`);
 
@@ -1552,15 +1513,15 @@ IMPORTANT:
             const cachedData = await response.json(); // Returns null if no cache
             if (cachedData && cachedData.wiki_structure && cachedData.generated_pages && Object.keys(cachedData.generated_pages).length > 0) {
               console.log('Using server-cached wiki data');
-              if(cachedData.model) {
+              if (cachedData.model) {
                 setSelectedModelState(cachedData.model);
               }
-              if(cachedData.provider) {
+              if (cachedData.provider) {
                 setSelectedProviderState(cachedData.provider);
               }
 
               // Update repoInfo
-              if(cachedData.repo) {
+              if (cachedData.repo) {
                 setEffectiveRepoInfo(cachedData.repo);
               } else if (cachedData.repo_url && !effectiveRepoInfo.repoUrl) {
                 const updatedRepoInfo = { ...effectiveRepoInfo, repoUrl: cachedData.repo_url };
@@ -1629,7 +1590,7 @@ IMPORTANT:
                 for (const [categoryId, categoryPages] of pageClusters.entries()) {
                   if (categoryPages.length > 0) {
                     const category = categories.find(c => c.id === categoryId) ||
-                                    { id: categoryId, title: categoryId === 'other' ? 'Other' : categoryId.charAt(0).toUpperCase() + categoryId.slice(1) };
+                      { id: categoryId, title: categoryId === 'other' ? 'Other' : categoryId.charAt(0).toUpperCase() + categoryId.slice(1) };
 
                     const sectionId = `section-${categoryId}`;
                     sections.push({
@@ -1688,7 +1649,7 @@ IMPORTANT:
               setGeneratedPages(cachedData.generated_pages);
               setCurrentPageId(cachedStructure.pages.length > 0 ? cachedStructure.pages[0].id : undefined);
               setIsLoading(false);
-              setEmbeddingError(false); 
+              setEmbeddingError(false);
               setLoadingMessage(undefined);
               cacheLoadedSuccessfully.current = true;
               return; // Exit if cache is successfully loaded
@@ -1723,11 +1684,11 @@ IMPORTANT:
   useEffect(() => {
     const saveCache = async () => {
       if (!isLoading &&
-          !error &&
-          wikiStructure &&
-          Object.keys(generatedPages).length > 0 &&
-          Object.keys(generatedPages).length >= wikiStructure.pages.length &&
-          !cacheLoadedSuccessfully.current) {
+        !error &&
+        wikiStructure &&
+        Object.keys(generatedPages).length > 0 &&
+        Object.keys(generatedPages).length >= wikiStructure.pages.length &&
+        !cacheLoadedSuccessfully.current) {
 
         const allPagesHaveContent = wikiStructure.pages.every(page =>
           generatedPages[page.id] && generatedPages[page.id].content && generatedPages[page.id].content !== 'Loading...');
@@ -1749,7 +1710,8 @@ IMPORTANT:
               wiki_structure: structureToCache,
               generated_pages: generatedPages,
               provider: selectedProviderState,
-              model: selectedModelState
+              model: selectedModelState,
+              sub_path: subPathParam, // Include sub_path if needed
             };
             const response = await fetch(`/api/wiki_cache`, {
               method: 'POST',
@@ -1827,10 +1789,10 @@ IMPORTANT:
                   {language === 'ja'
                     ? `${wikiStructure.pages.length}ページ中${wikiStructure.pages.length - pagesInProgress.size}ページ完了`
                     : messages.repoPage?.pagesCompleted
-                        ? messages.repoPage.pagesCompleted
-                            .replace('{completed}', (wikiStructure.pages.length - pagesInProgress.size).toString())
-                            .replace('{total}', wikiStructure.pages.length.toString())
-                        : `${wikiStructure.pages.length - pagesInProgress.size} of ${wikiStructure.pages.length} pages completed`}
+                      ? messages.repoPage.pagesCompleted
+                        .replace('{completed}', (wikiStructure.pages.length - pagesInProgress.size).toString())
+                        .replace('{total}', wikiStructure.pages.length.toString())
+                      : `${wikiStructure.pages.length - pagesInProgress.size} of ${wikiStructure.pages.length} pages completed`}
                 </p>
 
                 {/* Show list of in-progress pages */}
@@ -1849,8 +1811,8 @@ IMPORTANT:
                           {language === 'ja'
                             ? `...他に${pagesInProgress.size - 3}ページ`
                             : messages.repoPage?.andMorePages
-                                ? messages.repoPage.andMorePages.replace('{count}', (pagesInProgress.size - 3).toString())
-                                : `...and ${pagesInProgress.size - 3} more`}
+                              ? messages.repoPage.andMorePages.replace('{count}', (pagesInProgress.size - 3).toString())
+                              : `...and ${pagesInProgress.size - 3} more`}
                         </li>
                       )}
                     </ul>
@@ -1869,10 +1831,10 @@ IMPORTANT:
             <p className="text-[var(--muted)] text-xs">
               {embeddingError
                 ? messages.repoPage?.embeddingErrorDefault ||
-                  'This error is related to the document embedding system used for analyzing your repository. Please verify your embedding model configuration, API keys, and try again. If the issue persists, consider switching to a different embedding provider in the model settings.'
+                'This error is related to the document embedding system used for analyzing your repository. Please verify your embedding model configuration, API keys, and try again. If the issue persists, consider switching to a different embedding provider in the model settings.'
                 : error ||
-                  (messages.repoPage?.errorMessageDefault ||
-                    'Please check that your repository exists and is public. Valid formats are "owner/repo", "https://github.com/owner/repo", "https://gitlab.com/owner/repo", "https://bitbucket.org/owner/repo", or local folder paths like "C:\\path\\to\\folder" or "/path/to/folder".')}
+                (messages.repoPage?.errorMessageDefault ||
+                  'Please check that your repository exists and is public. Valid formats are "owner/repo", "https://github.com/owner/repo", "https://gitlab.com/owner/repo", "https://bitbucket.org/owner/repo", or local folder paths like "C:\\path\\to\\folder" or "/path/to/folder".')}
             </p>
             <div className="mt-5">
               <Link
@@ -2083,6 +2045,7 @@ IMPORTANT:
               isCustomModel={isCustomSelectedModelState}
               customModel={customSelectedModelState}
               language={language}
+              subPath={subPathParam} // Pass subPath to Ask component
               onRef={(ref) => (askComponentRef.current = ref)}
             />
           </div>
