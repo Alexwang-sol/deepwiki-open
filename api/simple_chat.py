@@ -65,6 +65,7 @@ class ChatCompletionRequest(BaseModel):
     excluded_files: Optional[str] = Field(None, description="Comma-separated list of file patterns to exclude from processing")
     included_dirs: Optional[str] = Field(None, description="Comma-separated list of directories to include exclusively")
     included_files: Optional[str] = Field(None, description="Comma-separated list of file patterns to include exclusively")
+    sub_path: Optional[str] = Field(None, description="subpath for the subpath mode url")
 
 @app.post("/chat/completions/stream")
 async def chat_completions_stream(request: ChatCompletionRequest):
@@ -104,7 +105,7 @@ async def chat_completions_stream(request: ChatCompletionRequest):
                 included_files = [unquote(file_pattern) for file_pattern in request.included_files.split('\n') if file_pattern.strip()]
                 logger.info(f"Using custom included files: {included_files}")
 
-            request_rag.prepare_retriever(request.repo_url, request.type, request.token, excluded_dirs, excluded_files, included_dirs, included_files)
+            request_rag.prepare_retriever(request.repo_url, request.type, request.token, excluded_dirs, excluded_files, included_dirs, included_files, request.sub_path)
             logger.info(f"Retriever prepared for {request.repo_url}")
         except ValueError as e:
             if "No valid documents with embeddings found" in str(e):

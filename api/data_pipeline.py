@@ -646,7 +646,7 @@ class DatabaseManager:
 
     def prepare_database(self, repo_url_or_path: str, type: str = "github", access_token: str = None, is_ollama_embedder: bool = None,
                        excluded_dirs: List[str] = None, excluded_files: List[str] = None,
-                       included_dirs: List[str] = None, included_files: List[str] = None) -> List[Document]:
+                       included_dirs: List[str] = None, included_files: List[str] = None, sub_path: str = None) -> List[Document]:
         """
         Create a new database from the repository.
 
@@ -664,7 +664,7 @@ class DatabaseManager:
             List[Document]: List of Document objects
         """
         self.reset_database()
-        self._create_repo(repo_url_or_path, type, access_token)
+        self._create_repo(repo_url_or_path, type, access_token, sub_path)
         return self.prepare_db_index(is_ollama_embedder=is_ollama_embedder, excluded_dirs=excluded_dirs, excluded_files=excluded_files,
                                    included_dirs=included_dirs, included_files=included_files)
 
@@ -691,7 +691,7 @@ class DatabaseManager:
             repo_name = url_parts[-1].replace(".git", "")
         return repo_name
 
-    def _create_repo(self, repo_url_or_path: str, repo_type: str = "github", access_token: str = None) -> None:
+    def _create_repo(self, repo_url_or_path: str, repo_type: str = "github", access_token: str = None, sub_path: str = None) -> None:
         """
         Download and prepare all paths.
         Paths:
@@ -725,8 +725,10 @@ class DatabaseManager:
             else:  # local path
                 repo_name = os.path.basename(repo_url_or_path)
                 save_repo_dir = repo_url_or_path
-
-            save_db_file = os.path.join(root_path, "databases", f"{repo_name}.pkl")
+            pkl_name = f"{repo_name}.pkl"
+            if sub_path: 
+                pkl_name = f"{repo_name}_{sub_path}.pkl"
+            save_db_file = os.path.join(root_path, "databases", pkl_name)
             os.makedirs(save_repo_dir, exist_ok=True)
             os.makedirs(os.path.dirname(save_db_file), exist_ok=True)
 

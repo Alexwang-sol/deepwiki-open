@@ -61,6 +61,7 @@ export default function SlidesPage() {
   const isCustomModelParam = searchParams.get('is_custom_model') === 'true';
   const customModelParam = searchParams.get('custom_model') || '';
   const language = searchParams.get('language') || 'en';
+  const subPath = searchParams.get('sub_path') || ''; // 获取 sub_path
 
   // Import language context for translations
   const { messages } = useLanguage();
@@ -72,8 +73,9 @@ export default function SlidesPage() {
     type: repoType,
     token: token || null,
     localPath: localPath || null,
-    repoUrl: repoUrl || null
-  }), [owner, repo, repoType, token, localPath, repoUrl]);
+    repoUrl: repoUrl || null, 
+    subPath: subPath || null
+  }), [owner, repo, repoType, token, localPath, repoUrl, subPath]);
 
   // State variables
   const [isLoading, setIsLoading] = useState(false);

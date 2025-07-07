@@ -208,8 +208,9 @@ export default function RepoWikiPage() {
     type: repoType,
     token: token || null,
     localPath: localPath || null,
-    repoUrl: repoUrl || null
-  }), [owner, repo, repoType, localPath, repoUrl, token]);
+    repoUrl: repoUrl || null,
+    subPath: subPathParam || null
+  }), [owner, repo, repoType, localPath, repoUrl, token, subPathParam]);
 
   // State variables
   const [isLoading, setIsLoading] = useState(true);
@@ -1107,9 +1108,11 @@ IMPORTANT:
       else if (effectiveRepoInfo.type === 'gitlab') {
         // GitLab API approach
         const projectPath = extractUrlPath(effectiveRepoInfo.repoUrl ?? '') ?? `${owner}/${repo}`;
+        console.log(`project Path ${projectPath}`)
         const projectDomain = extractUrlDomain(effectiveRepoInfo.repoUrl ?? "https://git.huya.com");
+        console.log(`project domain ${projectDomain}`)
         const encodedProjectPath = encodeURIComponent(projectPath);
-
+        console.log(`project encodedProjectPath ${encodedProjectPath}`)
         const headers = createGitlabHeaders(currentToken);
 
         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -1121,6 +1124,7 @@ IMPORTANT:
           try {
             const validatedUrl = new URL(projectDomain ?? ''); // Validate domain
             projectInfoUrl = `${validatedUrl.origin}/api/v4/projects/${encodedProjectPath}`;
+            console.log(`project URL ${projectInfoUrl}`)
           } catch (err) {
             throw new Error(`Invalid project domain URL: ${projectDomain}`);
           }
@@ -1505,8 +1509,9 @@ IMPORTANT:
             repo_type: effectiveRepoInfo.type,
             language: language,
             comprehensive: isComprehensiveView.toString(),
-            sub_path:subPathParam, // Add sub_path here
+            sub_path: subPathParam, // Add sub_path here
           });
+          console.log(`param ${effectiveRepoInfo.toString()}`);
           const response = await fetch(`/api/wiki_cache?${params.toString()}`);
 
           if (response.ok) {
@@ -1678,7 +1683,7 @@ IMPORTANT:
 
     // Clean up function for this effect is not strictly necessary for loadData,
     // but keeping the main unmount cleanup in the other useEffect
-  }, [effectiveRepoInfo, effectiveRepoInfo.owner, effectiveRepoInfo.repo, effectiveRepoInfo.type, language, fetchRepositoryStructure, messages.loading?.fetchingCache, isComprehensiveView]);
+  }, [effectiveRepoInfo, effectiveRepoInfo.owner, effectiveRepoInfo.repo, effectiveRepoInfo.type, language, fetchRepositoryStructure, messages.loading?.fetchingCache, isComprehensiveView, subPathParam]);
 
   // Save wiki to server-side cache when generation is complete
   useEffect(() => {
@@ -2045,7 +2050,6 @@ IMPORTANT:
               isCustomModel={isCustomSelectedModelState}
               customModel={customSelectedModelState}
               language={language}
-              subPath={subPathParam} // Pass subPath to Ask component
               onRef={(ref) => (askComponentRef.current = ref)}
             />
           </div>

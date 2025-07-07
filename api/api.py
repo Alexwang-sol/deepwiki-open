@@ -56,6 +56,7 @@ class ProcessedProjectEntry(BaseModel):
     repo_type: str # Renamed from type to repo_type for clarity with existing models
     submittedAt: int # Timestamp
     language: str # Extracted from filename
+    sub_path:Optional[str] = None
 
 class RepoInfo(BaseModel):
     owner: str
@@ -418,8 +419,8 @@ os.makedirs(WIKI_CACHE_DIR, exist_ok=True)
 
 def get_wiki_cache_path(owner: str, repo: str, repo_type: str, language: str, sub_path: str) -> str:
     """Generates the file path for a given wiki cache."""
-    if sub_path :
-        filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}:{sub_path}@{language}.json"
+    if sub_path and sub_path != 'undefined' :
+        filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}-sp-{sub_path}@{language}.json"
     else :
         filename = f"deepwiki_cache_{repo_type}@{owner}@{repo}@{language}.json"
     return os.path.join(WIKI_CACHE_DIR, filename)
@@ -522,7 +523,8 @@ async def delete_wiki_cache(
     repo: str = Query(..., description="Repository name"),
     repo_type: str = Query(..., description="Repository type (e.g., github, gitlab)"),
     language: str = Query(..., description="Language of the wiki content"),
-    authorization_code: Optional[str] = Query(None, description="Authorization code")
+    authorization_code: Optional[str] = Query(None, description="Authorization code"),
+    sub_path: str = Query(..., description="subpath of the wiki repo"),
 ):
     """
     Deletes a specific wiki cache from the file system.
@@ -537,8 +539,8 @@ async def delete_wiki_cache(
         if WIKI_AUTH_CODE != authorization_code:
             raise HTTPException(status_code=401, detail="Authorization code is invalid")
 
-    logger.info(f"Attempting to delete wiki cache for {owner}/{repo} ({repo_type}), lang: {language}")
-    cache_path = get_wiki_cache_path(owner, repo, repo_type, language)
+    logger.info(f"Attempting to delete wiki cache for {owner}/{repo} ({repo_type}),sub_path {sub_path} lang: {language}")
+    cache_path = get_wiki_cache_path(owner, repo, repo_type, language, sub_path)
 
     if os.path.exists(cache_path):
         try:
@@ -569,9 +571,15 @@ async def read_wiki_structure(request_data: WikiStructureRequest) -> Optional[Wi
     if len(repo_parts) != 2:
         raise HTTPException(status_code=400, detail="repoName must be in 'owner/repo' format")
     owner, repo = repo_parts[0], repo_parts[1]
+    sub_path = ''
+    repo_paths = repo.split('-sp-')
+    if len(repo_paths) == 2:
+        repo = repo_paths[0]
+        sub_path = repo_paths[1]
+        
 
     logger.info(f"Attempting to retrieve wiki cache for {owner}/{repo} ({request_data.repoType}), lang: {request_data.language}")
-    cached_data = await read_wiki_cache(owner, repo, request_data.repoType, request_data.language)
+    cached_data = await read_wiki_cache(owner, repo, request_data.repoType, request_data.language, sub_path)
     if cached_data:
         return cached_data.wiki_structure
     else:
@@ -596,9 +604,14 @@ async def read_wiki_contents(request_data: WikiContentRequest) -> str:
     if len(repo_parts) != 2:
         raise HTTPException(status_code=400, detail="repoName must be in 'owner/repo' format")
     owner, repo = repo_parts[0], repo_parts[1]
+    sub_path = ''
+    repo_paths = repo.split('-sp-')
+    if len(repo_paths) == 2:
+        repo = repo_paths[0]
+        sub_path = repo_paths[1]
 
     logger.info(f"Attempting to read wiki cache for {owner}/{repo} ({request_data.repoType}), lang: {request_data.language}")
-    cached_data = await read_wiki_cache(owner, repo, request_data.repoType, request_data.language)
+    cached_data = await read_wiki_cache(owner, repo, request_data.repoType, request_data.language, sub_path)
 
     logger.info(f"cache data {cached_data}")
     if not cached_data:
@@ -627,6 +640,8 @@ async def read_wiki_contents(request_data: WikiContentRequest) -> str:
 
     # Construct repo_url for export functions
     repo_url = f"https://deepwiki.test.huya.info/{owner}/{repo}"
+    if sub_path:
+        repo_url += f"/{sub_path}"
 
     # Get current timestamp for the filename
     if request_data.format == "markdown":
@@ -690,12 +705,13 @@ async def get_processed_projects():
         filenames = await asyncio.to_thread(os.listdir, WIKI_CACHE_DIR) # Use asyncio.to_thread for os.listdir
 
         for filename in filenames:
+            logger.info(f"wiki file : {filename}")
             if filename.startswith("deepwiki_cache_") and filename.endswith(".json"):
                 file_path = os.path.join(WIKI_CACHE_DIR, filename)
                 try:
                     stats = await asyncio.to_thread(os.stat, file_path) # Use asyncio.to_thread for os.stat
                     parts = filename.replace("deepwiki_cache_", "").replace(".json", "").split('@')
-
+                    logger.info(f"wiki file parts : {parts}")
                     # Expecting repo_type_owner_repo_language
                     # Example: deepwiki_cache_github_AsyncFuncAI_deepwiki-open_en.json
                     # parts = [github, AsyncFuncAI, deepwiki-open, en]
@@ -704,16 +720,24 @@ async def get_processed_projects():
                         owner = parts[1]
                         language = parts[-1] # language is the last part
                         repo = "_".join(parts[2:-1]) # repo can contain underscores
+                        show_name = f"{owner}/{repo}"
+                        repo_parts = repo.split('-sp-')
+                        sub_path = ''
+                        if len(repo_parts) >= 2:
+                            repo = repo_parts[0]
+                            sub_path = repo_parts[1]
+                            show_name = f"{owner}/{repo}/{sub_path}"
 
                         project_entries.append(
                             ProcessedProjectEntry(
                                 id=filename,
                                 owner=owner,
                                 repo=repo,
-                                name=f"{owner}/{repo}",
+                                name=show_name,
                                 repo_type=repo_type,
                                 submittedAt=int(stats.st_mtime * 1000), # Convert to milliseconds
-                                language=language
+                                language=language,
+                                sub_path=sub_path
                             )
                         )
                     else:

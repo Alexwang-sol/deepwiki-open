@@ -28,11 +28,13 @@ lib64/
 parts/
 sdist/
 var/
+venv/
 wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 *.venv
+debug.log
 # testing
 /coverage
 

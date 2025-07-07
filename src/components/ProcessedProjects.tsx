@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { FaTimes, FaTh, FaList } from 'react-icons/fa';
+import { useEffect, useMemo, useState } from 'react';
+import { FaList, FaTh, FaTimes } from 'react-icons/fa';
 
 // Interface should match the structure from the API
 interface ProcessedProject {
@@ -13,6 +13,7 @@ interface ProcessedProject {
   repo_type: string;
   submittedAt: number;
   language: string;
+  sub_path?: string;
 }
 
 interface ProcessedProjectsProps {
@@ -116,6 +117,7 @@ export default function ProcessedProjects({
           repo: project.repo,
           repo_type: project.repo_type,
           language: project.language,
+          sub_path: project.sub_path ?? '',
         }),
       });
       if (!response.ok) {
@@ -207,7 +209,7 @@ export default function ProcessedProjects({
                   <FaTimes className="h-4 w-4" />
                 </button>
                 <Link
-                  href={`/${project.owner}/${project.repo}?type=${project.repo_type}&language=${project.language}${token ? `&token=${token}` : ''}`}
+                  href={`/${project.owner}/${project.repo}?type=${project.repo_type}&language=${project.language}${token ? `&token=${token}` : ''}${project.sub_path ? `&sub_path=${project.sub_path}` : ''}`}
                   className="block"
                 >
                   <h3 className="text-lg font-semibold text-[var(--link-color)] hover:underline mb-2 line-clamp-2">
@@ -237,7 +239,7 @@ export default function ProcessedProjects({
                   <FaTimes className="h-4 w-4" />
                 </button>
                 <Link
-                  href={`/${project.owner}/${project.repo}?type=${project.repo_type}&language=${project.language}${token ? `&token=${token}` : ''}`}
+                  href={`/${project.owner}/${project.repo}?type=${project.repo_type}&language=${project.language}${token ? `&token=${token}` : ''}${project.sub_path ? `&sub_path=${project.sub_path}` : ''}`}
                   className="flex items-center justify-between"
                 >
                   <div className="flex-1 min-w-0">
