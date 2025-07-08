@@ -10,7 +10,7 @@ const SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.
 const getWebSocketUrl = () => {
   const baseUrl = SERVER_BASE_URL;
   // Replace http:// with ws:// or https:// with wss://
-  const wsBaseUrl = baseUrl.replace(/^http/, 'ws');
+  const wsBaseUrl = baseUrl.replace(/^https/, 'wss');
   return `${wsBaseUrl}/ws/chat`;
 };
 
