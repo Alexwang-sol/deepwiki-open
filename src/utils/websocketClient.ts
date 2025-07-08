@@ -4,7 +4,7 @@
  */
 
 // Get the server base URL from environment or use default
-const SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.test.huya.info';
+const SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'https://deepwiki-backend.test.huya.info';
 
 // Convert HTTP URL to WebSocket URL
 const getWebSocketUrl = () => {

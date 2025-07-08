@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // The target backend server base URL, derived from environment variable or defaulted.
-const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'http://deepwiki-backend.test.huya.info';
+const TARGET_SERVER_BASE_URL = process.env.SERVER_BASE_URL || 'https://deepwiki-backend.test.huya.info';
 
 export async function GET() {
   try {

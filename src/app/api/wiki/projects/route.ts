@@ -33,7 +33,7 @@ function isDeleteProjectCachePayload(obj: unknown): obj is DeleteProjectCachePay
 }
 
 // Ensure this matches your Python backend configuration
-const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_HOST || 'http://deepwiki-backend.test.huya.info';
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_HOST || 'https://deepwiki-backend.test.huya.info';
 const PROJECTS_API_ENDPOINT = `${PYTHON_BACKEND_URL}/api/processed_projects`;
 const CACHE_API_ENDPOINT = `${PYTHON_BACKEND_URL}/api/wiki_cache`;
 

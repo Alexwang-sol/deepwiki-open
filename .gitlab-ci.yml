@@ -1,7 +1,7 @@
 .docker-image:
   image: registry-haiyan2.local.huya.com/library/docker:19.03.5 # registry-haiyan2.local.huya.com/baseimg/centos7:latest
   tags:
-    - docker-in-docker
+    - docker-image-builder
   before_script:
     - docker version
     - harborhost=harbor.huya.info
@@ -10,8 +10,6 @@
     - docker login ${harborhost} -u${HARBOR_USER} -p "${HARBOR_PASSWORD}"
     - docker login ${harbortesthost} -u${HARBOR_USER} -p "${HARBOR_PASSWORD}"
   variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
     FF_TIMESTAMPS: "true"
     TIMEZONE: "Asia/Shanghai"
   services:
