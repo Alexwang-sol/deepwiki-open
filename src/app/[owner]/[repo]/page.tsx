@@ -1008,8 +1008,8 @@ IMPORTANT:
           fileTreeData = data.file_tree;
           readmeContent = data.readme;
 
-          if (fileTreeData.split('\n').length > 50) {
-            throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
+          if (fileTreeData.split('\n').length > 200) {
+            throw new Error("This repository contains over 200 files. Please use the advanced settings to filter the files.");
           }
         } catch (err) {
           throw err;
