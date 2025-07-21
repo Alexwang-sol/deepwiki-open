@@ -20,6 +20,10 @@
         "bytedance/doubao-seed-1.6": {
           "temperature": 0.7,
           "top_p": 0.8
+        },
+        "moonshotai/kimi-k2": {
+          "temperature": 0.7,
+          "top_p": 0.8
         }
       }
     }
