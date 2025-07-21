@@ -1173,7 +1173,7 @@ IMPORTANT:
             const includeDirsArray = modelIncludedDirs.split('\n').map(dir => dir.trim()).filter(dir => dir);
             if (includeDirsArray.length > 0) {
               fileItems = fileItems.filter((item: { path: string }) =>
-                includeDirsArray.some(dir => item.path.startsWith(dir))
+                includeDirsArray.some(dir => item.path.startsWith(dir.endsWith('/') ? dir : dir + '/'))
               );
             }
           }
@@ -1181,8 +1181,8 @@ IMPORTANT:
           fileTreeData = fileItems.map((item: { path: string }) => item.path).join('\n');
           console.log(`test ${fileTreeData}`);
 
-          if (fileTreeData.split('\n').length > 50) {
-            throw new Error("This repository contains over 50 files. Please use the advanced settings to filter the files.");
+          if (fileTreeData.split('\n').length > 80) {
+            throw new Error("This repository contains over 80 files. Please use the advanced settings to filter the files.");
           }
 
           // Step 4: Try to fetch README.md content
