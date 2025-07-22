@@ -1166,15 +1166,48 @@ IMPORTANT:
           //   .map((item: { type: string; path: string }) => item.path)
           //   .join('\n');
           // Convert files data to a string representation
-          let fileItems = filesData.filter((item: { type: string; path: string }) => item.type === 'blob');
+          let allFileItems = filesData.filter((item: { type: string; path: string }) => item.type === 'blob');
+          let fileItems = [...allFileItems]; // Start with a copy of all files
 
-          // Filter by included directories if specified
+          // 1. Filter by included directories if specified
           if (modelIncludedDirs) {
             const includeDirsArray = modelIncludedDirs.split('\n').map(dir => dir.trim()).filter(dir => dir);
             if (includeDirsArray.length > 0) {
               fileItems = fileItems.filter((item: { path: string }) =>
                 includeDirsArray.some(dir => item.path.startsWith(dir.endsWith('/') ? dir : dir + '/'))
               );
+            }
+          }
+
+          // 2. Filter by excluded directories if specified
+          if (modelExcludedDirs) {
+            const excludeDirsArray = modelExcludedDirs.split('\n').map(dir => dir.trim()).filter(dir => dir);
+            if (excludeDirsArray.length > 0) {
+              fileItems = fileItems.filter((item: { path: string }) =>
+                !excludeDirsArray.some(dir => item.path.startsWith(dir.endsWith('/') ? dir : dir + '/'))
+              );
+            }
+          }
+
+          // 3. Filter by excluded files if specified
+          if (modelExcludedFiles) {
+            const excludeFilesArray = modelExcludedFiles.split('\n').map(file => file.trim()).filter(file => file);
+            if (excludeFilesArray.length > 0) {
+              fileItems = fileItems.filter((item: { path: string }) =>
+                !excludeFilesArray.some(file => item.path === file)
+              );
+            }
+          }
+
+          // 4. Add included files if specified (these can override previous exclusions)
+          if (modelIncludedFiles) {
+            const includeFilesArray = modelIncludedFiles.split('\n').map(file => file.trim()).filter(file => file);
+            if (includeFilesArray.length > 0) {
+              const filesToAdd = allFileItems.filter((item: { path: string }) =>
+                includeFilesArray.some(file => item.path === file) &&
+                !fileItems.some(existingItem => existingItem.path === item.path) // Only add if not already present
+              );
+              fileItems = [...fileItems, ...filesToAdd];
             }
           }
 
