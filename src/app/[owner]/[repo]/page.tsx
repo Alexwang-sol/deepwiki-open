@@ -1181,8 +1181,8 @@ IMPORTANT:
           fileTreeData = fileItems.map((item: { path: string }) => item.path).join('\n');
           console.log(`test ${fileTreeData}`);
 
-          if (fileTreeData.split('\n').length > 80) {
-            throw new Error("This repository contains over 80 files. Please use the advanced settings to filter the files.");
+          if (fileTreeData.split('\n').length > 150) {
+            throw new Error("This repository contains over 150 files. Please use the advanced settings to filter the files.");
           }
 
           // Step 4: Try to fetch README.md content
