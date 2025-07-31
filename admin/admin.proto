@@ -7,8 +7,6 @@ import "google/protobuf/timestamp.proto";
 
 import "trpc/proto/trpc_options.proto";
 
-import "cd_system.proto";
-
 
 // ----------------------------------------- 接口协议 ----------------------------------------------------
 service Management {
