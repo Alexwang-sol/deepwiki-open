@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package trpc.deepwiki.admin;
+option go_package="git.huya.info/trpcprotocol/deepwiki/admin";
+
+import "google/protobuf/timestamp.proto";
+
+import "trpc/proto/trpc_options.proto";
+
+import "cd_system.proto";
+
+
+// ----------------------------------------- 接口协议 ----------------------------------------------------
+service Management {
+
+  /*********************任务信息接口*******************************/
+    // 查询任务列表
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+    option (trpc.alias) = "/task/list";
+  }
+
+  // 单个task查询，用于轮训
+  rpc GetTaskDetail(GetTaskDetailRequest) returns (GetTaskDetailResponse) {
+    option (trpc.alias) = "/task/detail";
+  }
+
+}
+
+
+// 任务列表数据
+message ListTasksData {
+  repeated Task tasks = 1;         // 任务列表
+  int32 total = 2;                 // 总记录数
+  int32 page = 3;                  // 当前页码
+  int32 page_size = 4;             // 每页大小
+}
+
+
+
+enum TaskType {
+  TASK_TYPE_UNKNOWN = 0;  // 未知类型（默认值）
+  TASK_TYPE_NODE_MANUAL_OPERATOR = 1; // 节点手动变更
+  TASK_TYPE_NODE_BATCH_OPERATOR = 2; // 节点批量变更
+  TASK_TYPE_NEW_SERVER_DEPLOY = 3; // 新服务部署
+  TASK_TYPE_SERVER_IMPORT = 4;     // 服务导入
+  TASK_TYPE_SERVER_UNIMPORT = 5;   // 服务导入解除
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNKNOWN = 0;  // 未知状态（默认值）
+  TASK_STATUS_RUNNING = 1;  // 执行中
+  TASK_STATUS_SUCCESS = 2;  // 成功
+  TASK_STATUS_FAIL = 3;     // 失败
+  TASK_STATUS_TIMEOUT = 4;  // 超时
+  TASK_STATUS_INTERRUPT = 5;  // 取消
+  TASK_STATUS_PAUSE = 6;  // 暂停
+  TASK_STATUS_INIT = 7;  // 待初始化
+}
+
+message Task {
+  int64                     id = 1;                                     //任务ID
+  TaskType                  task_type = 2;                              //任务类型
+  string                    operate_type = 3;                           //不同任务类型，会有不同的操作
+  string                    task_target = 4;                            //操作对象
+  TaskStatus                task_status = 5;                            //任务状态
+  string                    task_info = 6;                              //任务详细信息(JSON格式)
+  string                    task_result = 7;                            //任务结果
+  int64                     parent_task_id = 12;                        //父任务id，只能有一层父子关系
+  int64                     server_id = 13;                             //关联服务ID
+  int32                     time_out = 14;                              //任务超时时间，单位秒, -1表示不会超时
+  google.protobuf.Timestamp start_time = 15;                            //开始时间
+  google.protobuf.Timestamp finish_time = 16;                           //完成时间
+  string                    operator = 17;                              //操作人
+}
+
+
+// 任务查询请求消息
+message ListTasksRequest {
+  int32 page = 1;                  // 页码
+  int32 page_size = 2;             // 每页大小
+  string task_target = 3;          // 任务对象过滤
+  int64 parent_task_id = 4;        // 父任务ID过滤
+  int64 server_id = 5;             // 关联服务ID过滤
+  TaskStatus task_status = 6;      // 任务状态过滤
+  TaskType task_type = 7;          // 任务类型过滤
+  string operator = 8;            // 操作人过滤
+  int64  task_id = 9;             // 任务ID过滤
+}
+
+// 任务查询响应消息
+message ListTasksResponse {
+  int64 code = 1;                  // 错误码，0表示成功
+  string message = 2;              // 错误信息
+  ListTasksData data = 3;          // 任务列表数据
+}
+
+// 任务查询请求消息
+message GetTaskDetailRequest {
+  int64  task_id = 1;             // 任务ID过滤
+}
+
+// 任务查询响应消息
+message GetTaskDetailResponse {
+  int64 code = 1;                  // 错误码，0表示成功
+  string message = 2;              // 错误信息
+  Task data = 3;          // 任务数据
+}
