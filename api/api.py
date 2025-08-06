@@ -65,6 +65,7 @@ class RepoInfo(BaseModel):
     token: Optional[str] = None
     localPath: Optional[str] = None
     repoUrl: Optional[str] = None
+    subPath: Optional[str] = None
 
 
 class WikiStructureModel(BaseModel):
@@ -432,7 +433,10 @@ async def read_wiki_cache(owner: str, repo: str, repo_type: str, language: str, 
         try:
             with open(cache_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                return WikiCacheData(**data)
+                wikidata = WikiCacheData(**data)
+                if wikidata and sub_path and wikidata.repo:
+                    wikidata.repo.subPath = sub_path
+                return wikidata
         except Exception as e:
             logger.error(f"Error reading wiki cache from {cache_path}: {e}")
             return None

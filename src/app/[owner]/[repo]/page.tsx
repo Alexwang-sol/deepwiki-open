@@ -1913,7 +1913,10 @@ IMPORTANT:
                       rel="noopener noreferrer"
                       className="hover:text-[var(--accent-primary)] transition-colors border-b border-[var(--border-color)] hover:border-[var(--accent-primary)]"
                     >
-                      {effectiveRepoInfo.owner}/{effectiveRepoInfo.repo}
+                      {effectiveRepoInfo.subPath 
+                        ? `${effectiveRepoInfo.owner}/${effectiveRepoInfo.repo}/${effectiveRepoInfo.subPath}`
+                        : `${effectiveRepoInfo.owner}/${effectiveRepoInfo.repo}`
+                      }
                     </a>
                   </>
                 )}
